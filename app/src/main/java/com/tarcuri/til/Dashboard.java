@@ -24,4 +24,8 @@ public class Dashboard extends AppCompatActivity {
         Typeface tf = Typeface.createFromAsset(getAssets(), getString(R.string.afr_font));
         tv.setTypeface(tf);
     }
+
+    public void startLogging(View view) {
+
+    }
 }
