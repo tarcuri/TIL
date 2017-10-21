@@ -36,6 +36,31 @@ public class ISPService extends Service {
     private UsbDeviceConnection usbDeviceConnection;
     private boolean serialPortConnected;
 
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        return START_STICKY;
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return binder;
+    }
+
+    @Override
+    public void onCreate() {
+        this.context = this;
+        serialPortConnected = false;
+        ISPService.SERVICE_CONNECTED = true;
+        setFilter();
+        usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        // findSerialPortDevice
+    }
+
+    @Override
+    public void onDestroy() {
+
+    }
+
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -53,21 +78,6 @@ public class ISPService extends Service {
             }
         }
     };
-
-    @Override
-    public void onCreate() {
-        this.context = this;
-        serialPortConnected = false;
-        ISPService.SERVICE_CONNECTED = true;
-        setFilter();
-        usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        // findSerialPortDevice
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        return binder;
-    }
 
     public class UsbBinder extends Binder {
         public ISPService getService() {
