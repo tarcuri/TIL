@@ -1,5 +1,6 @@
 package com.tarcuri.til;
 
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -17,6 +18,10 @@ public class Dashboard extends AppCompatActivity {
         TextView tv = (TextView) findViewById(R.id.afr_dashboard);
         Typeface tf = Typeface.createFromAsset(getAssets(), "fonts/DSEG7Modern-Regular.ttf");
         tv.setTypeface(tf);
+
+        // start the ISP service
+        Intent i = new Intent(this, ISPService.class);
+        startService(i);
     }
 
     public void connectUSB(View view) {

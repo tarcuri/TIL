@@ -12,6 +12,7 @@ import android.hardware.usb.UsbManager;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.widget.Toast;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -64,17 +65,29 @@ public class ISPService extends Service {
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            CharSequence usb_perms_text = "USB permissions granted";
+            CharSequence usb_noperms_text = "USB permissions NOT granted";
+            CharSequence usb_attached_text = "USB attached";
+            CharSequence usb_detached_text = "USB detatched";
+            int duration = Toast.LENGTH_SHORT;
+
             if (intent.getAction().equals(ACTION_USB_PERMISSION)) {
                 boolean granted = intent.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
                 if (granted) {
                     // user granted permission
+                    Toast toast = Toast.makeText(context, usb_perms_text, duration);
+                    toast.show();
                 } else {
-                    // user did not grant permission
+                    // user did not grant permissions
+                    Toast toast = Toast.makeText(context, usb_noperms_text, duration);
+                    toast.show();
                 }
             } else if (intent.getAction().equals(ACTION_USB_ATTACHED)) {
-
+                Toast toast = Toast.makeText(context, usb_attached_text, duration);
+                toast.show();
             } else if (intent.getAction().equals(ACTION_USB_DETACHED)) {
-
+                Toast toast = Toast.makeText(context, usb_detached_text, duration);
+                toast.show();
             }
         }
     };
