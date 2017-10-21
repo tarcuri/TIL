@@ -12,6 +12,7 @@ import android.hardware.usb.UsbManager;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.support.annotation.Nullable;
 import android.widget.Toast;
 
 import java.util.HashMap;
@@ -28,8 +29,6 @@ public class ISPService extends Service {
     private static final int IPS_BAUD_RATE = 19200;
     public static boolean SERVICE_CONNECTED = false;
 
-    private final IBinder binder = new UsbBinder();
-
     private Context context;
     private Handler mHandler;
     private UsbManager usbManager;
@@ -38,17 +37,8 @@ public class ISPService extends Service {
     private boolean serialPortConnected;
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        return START_STICKY;
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        return binder;
-    }
-
-    @Override
     public void onCreate() {
+        // The service is being created
         this.context = this;
         serialPortConnected = false;
         ISPService.SERVICE_CONNECTED = true;
@@ -58,8 +48,29 @@ public class ISPService extends Service {
     }
 
     @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        // The service is starting, due to a call to startService()
+        return START_STICKY;
+    }
+
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        // client binding with bindService
+        return null;
+    }
+
+    @Override
     public void onDestroy() {
 
+    }
+
+    private void setFilter() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ACTION_USB_PERMISSION);
+        filter.addAction(ACTION_USB_DETACHED);
+        filter.addAction(ACTION_USB_ATTACHED);
+        registerReceiver(usbReceiver, filter);
     }
 
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
@@ -91,21 +102,7 @@ public class ISPService extends Service {
             }
         }
     };
-
-    public class UsbBinder extends Binder {
-        public ISPService getService() {
-            return ISPService.this;
-        }
-    }
-
-    private void setFilter() {
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(ACTION_USB_PERMISSION);
-        filter.addAction(ACTION_USB_DETACHED);
-        filter.addAction(ACTION_USB_ATTACHED);
-        registerReceiver(usbReceiver, filter);
-    }
-
+    
     private void findSerialPortDevice() {
         // This snippet will try to open the first encountered usb device connected, excluding usb root hubs
         HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();
