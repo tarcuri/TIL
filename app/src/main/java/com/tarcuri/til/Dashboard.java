@@ -1,5 +1,7 @@
 package com.tarcuri.til;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.support.v7.app.AppCompatActivity;
@@ -9,6 +11,7 @@ import android.widget.TextView;
 
 
 public class Dashboard extends AppCompatActivity {
+    private TextView mLog = (TextView) findViewById(R.id.isplog_textview);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,9 +22,25 @@ public class Dashboard extends AppCompatActivity {
         Typeface tf = Typeface.createFromAsset(getAssets(), "fonts/DSEG7Modern-Regular.ttf");
         tv.setTypeface(tf);
 
+        mLog.setEnabled(false);
+        mLog.append("starting ISPService...");
+
         // start the ISP service
-        Intent i = new Intent(this, ISPService.class);
-        startService(i);
+        Intent isp_intent = new Intent(this, ISPService.class);
+        startService(isp_intent);
+
+        mLog.append("DONE.\n");
+
+        for (int i = 0; i < 50; i++) {
+            if (i % 3 == 0) {
+                mLog.append("14.6\n");
+            } else if (i % 7 == 0) {
+                mLog.append("14.8\n");
+                mLog.append("14.8\n");
+            } else {
+                mLog.append("14.7\n");
+            }
+        }
     }
 
     public void connectUSB(View view) {
@@ -33,4 +52,16 @@ public class Dashboard extends AppCompatActivity {
     public void startLogging(View view) {
 
     }
+
+    // Our handler for received Intents. This will be called whenever an Intent
+// with an action named "custom-event-name" is broadcasted.
+    private BroadcastReceiver logReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            // Get extra data included in the Intent
+            String message = intent.getStringExtra("message");
+//            Log.d("receiver", "Got message: " + message);
+
+        }
+    };
 }

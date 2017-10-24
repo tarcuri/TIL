@@ -44,7 +44,7 @@ public class ISPService extends Service {
         ISPService.SERVICE_CONNECTED = true;
         setFilter();
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        // findSerialPortDevice
+        findSerialPortDevice();
     }
 
     @Override
@@ -72,6 +72,8 @@ public class ISPService extends Service {
         filter.addAction(ACTION_USB_ATTACHED);
         registerReceiver(usbReceiver, filter);
     }
+
+
 
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
@@ -102,7 +104,7 @@ public class ISPService extends Service {
             }
         }
     };
-    
+
     private void findSerialPortDevice() {
         // This snippet will try to open the first encountered usb device connected, excluding usb root hubs
         HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();
