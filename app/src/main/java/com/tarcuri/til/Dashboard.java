@@ -4,17 +4,36 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
+import android.hardware.usb.UsbManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+
+import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
+import com.hoho.android.usbserial.driver.UsbSerialProber;
+import com.hoho.android.usbserial.util.HexDump;
 import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
+import org.w3c.dom.Text;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Dashboard extends AppCompatActivity {
     private final String TAG = Dashboard.class.getSimpleName();
+
+    private UsbManager mUsbManager;
+    private ListView mListView;
+    private TextView mProgressBarTitle;
+    private ProgressBar mProgressBar;
+
+    private static final int MESSAGE_REFRESH = 101;
+    private static final long REFRESH_TIMEOUT_MILLIS = 5000;
 
     /**
      * Driver instance, passed in statically via
@@ -25,6 +44,9 @@ public class Dashboard extends AppCompatActivity {
      * process, and this is a simple demo.
      */
     private static UsbSerialPort sPort = null;
+
+    // TODO: need to get UsbSerialPort instance
+    //private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
 
     private SerialInputOutputManager mSerialIoManager;
 
@@ -53,30 +75,14 @@ public class Dashboard extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 
+        mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        mListView = (ListView) findViewById(R.id.device_list);
+//        mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
+//        mProgressBarTitle = (TextView) findViewById(R.id.progress_bar_title);
+
         TextView tv = (TextView) findViewById(R.id.afr_dashboard);
         Typeface tf = Typeface.createFromAsset(getAssets(), "fonts/DSEG7Modern-Regular.ttf");
         tv.setTypeface(tf);
-
-        TextView log = (TextView) findViewById(R.id.isplog_textview);
-        log.setEnabled(false);
-        log.append("starting ISPService...");
-
-        // start the ISP service
-//        Intent isp_intent = new Intent(this, ISPService.class);
-//        startService(isp_intent);
-
-        log.append("DONE.\n");
-
-        for (int i = 0; i < 50; i++) {
-            if (i % 3 == 0) {
-                log.append("14.6\n");
-            } else if (i % 7 == 0) {
-                log.append("14.8\n");
-                log.append("14.8\n");
-            } else {
-                log.append("14.7\n");
-            }
-        }
     }
 
     public void connectUSB(View view) {
