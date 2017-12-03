@@ -4,14 +4,24 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
+import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.os.AsyncTask;
+import android.os.Handler;
+import android.os.Message;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.LayoutInflater;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.TwoLineListItem;
 
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
@@ -35,40 +45,24 @@ public class Dashboard extends AppCompatActivity {
     private static final int MESSAGE_REFRESH = 101;
     private static final long REFRESH_TIMEOUT_MILLIS = 5000;
 
-    /**
-     * Driver instance, passed in statically via
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MESSAGE_REFRESH:
+                    refreshDeviceList();
+                    mHandler.sendEmptyMessageDelayed(MESSAGE_REFRESH, REFRESH_TIMEOUT_MILLIS);
+                    break;
+                default:
+                    super.handleMessage(msg);
+                    break;
+            }
+        }
 
-     * This is a devious hack; it'd be cleaner to re-create the driver using
-     * arguments passed in with the {@link #startActivity(Intent)} intent. We
-     * can get away with it because both activities will run in the same
-     * process, and this is a simple demo.
-     */
-    private static UsbSerialPort sPort = null;
+    };
 
-    // TODO: need to get UsbSerialPort instance
-    //private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
-
-    private SerialInputOutputManager mSerialIoManager;
-
-    private final SerialInputOutputManager.Listener mListener =
-            new SerialInputOutputManager.Listener() {
-
-                @Override
-                public void onRunError(Exception e) {
-                    Log.d(TAG, "Runner stopped.");
-                }
-
-                @Override
-                public void onNewData(final byte[] data) {
-                    Dashboard.this.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Dashboard.this.updateReceivedData(data);
-                        }
-                    });
-                }
-            };
-
+    private List<UsbSerialPort> mEntries = new ArrayList<UsbSerialPort>();
+    private ArrayAdapter<UsbSerialPort> mAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,57 +71,120 @@ public class Dashboard extends AppCompatActivity {
 
         mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         mListView = (ListView) findViewById(R.id.device_list);
-//        mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
-//        mProgressBarTitle = (TextView) findViewById(R.id.progress_bar_title);
+        mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
+        mProgressBarTitle = (TextView) findViewById(R.id.progress_bar_title);
+
+        mAdapter = new ArrayAdapter<UsbSerialPort>(this,
+                android.R.layout.simple_expandable_list_item_2, mEntries) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                final TwoLineListItem row;
+                if (convertView == null){
+                    final LayoutInflater inflater =
+                            (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                    row = (TwoLineListItem) inflater.inflate(android.R.layout.simple_list_item_2, null);
+                } else {
+                    row = (TwoLineListItem) convertView;
+                }
+
+                final UsbSerialPort port = mEntries.get(position);
+                final UsbSerialDriver driver = port.getDriver();
+                final UsbDevice device = driver.getDevice();
+
+                final String title = String.format("Vendor %s Product %s",
+                        HexDump.toHexString((short) device.getVendorId()),
+                        HexDump.toHexString((short) device.getProductId()));
+                row.getText1().setText(title);
+
+                final String subtitle = driver.getClass().getSimpleName();
+                row.getText2().setText(subtitle);
+
+                return row;
+            }
+
+        };
+        mListView.setAdapter(mAdapter);
+
+        mListView.setOnItemClickListener(new ListView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Log.d(TAG, "Pressed item " + position);
+                if (position >= mEntries.size()) {
+                    Log.w(TAG, "Illegal position.");
+                    return;
+                }
+
+                final UsbSerialPort port = mEntries.get(position);
+                //showConsoleActivity(port);
+            }
+        });
 
         TextView tv = (TextView) findViewById(R.id.afr_dashboard);
         Typeface tf = Typeface.createFromAsset(getAssets(), "fonts/DSEG7Modern-Regular.ttf");
         tv.setTypeface(tf);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mHandler.sendEmptyMessage(MESSAGE_REFRESH);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mHandler.removeMessages(MESSAGE_REFRESH);
+    }
+
+    private void refreshDeviceList() {
+        showProgressBar();
+
+        new AsyncTask<Void, Void, List<UsbSerialPort>>() {
+            @Override
+            protected List<UsbSerialPort> doInBackground(Void... params) {
+                Log.d(TAG, "Refreshing device list ...");
+                SystemClock.sleep(1000);
+
+                final List<UsbSerialDriver> drivers =
+                        UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
+
+                final List<UsbSerialPort> result = new ArrayList<UsbSerialPort>();
+                for (final UsbSerialDriver driver : drivers) {
+                    final List<UsbSerialPort> ports = driver.getPorts();
+                    Log.d(TAG, String.format("+ %s: %s port%s",
+                            driver, Integer.valueOf(ports.size()), ports.size() == 1 ? "" : "s"));
+                    result.addAll(ports);
+                }
+
+                return result;
+            }
+
+            @Override
+            protected void onPostExecute(List<UsbSerialPort> result) {
+                mEntries.clear();
+                mEntries.addAll(result);
+                mAdapter.notifyDataSetChanged();
+                mProgressBarTitle.setText(
+                        String.format("%s device(s) found",Integer.valueOf(mEntries.size())));
+                hideProgressBar();
+                Log.d(TAG, "Done refreshing, " + mEntries.size() + " entries found.");
+            }
+
+        }.execute((Void) null);
+    }
+
+    private void showProgressBar() {
+        mProgressBar.setVisibility(View.VISIBLE);
+        mProgressBarTitle.setText(R.string.refreshing);
+    }
+
+    private void hideProgressBar() {
+        mProgressBar.setVisibility(View.INVISIBLE);
+    }
+
     public void connectUSB(View view) {
         TextView tv = (TextView) findViewById(R.id.afr_dashboard);
         Typeface tf = Typeface.createFromAsset(getAssets(), getString(R.string.afr_font));
         tv.setTypeface(tf);
-    }
-
-//    // Our handler for received Intents. This will be called whenever an Intent
-//// with an action named "custom-event-name" is broadcasted.
-//    private BroadcastReceiver logReceiver = new BroadcastReceiver() {
-//        @Override
-//        public void onReceive(Context context, Intent intent) {
-//            // Get extra data included in the Intent
-//            String message = intent.getStringExtra("message");
-////            Log.d("receiver", "Got message: " + message);
-//
-//        }
-//    };
-
-    private void updateReceivedData(byte[] data) {
-//        final String message = "Read " + data.length + " bytes: \n"
-//                + HexDump.dumpHexString(data) + "\n\n";
-//        mDumpTextView.append(message);
-//        mScrollView.smoothScrollTo(0, mDumpTextView.getBottom());
-    }
-
-    private void stopIoManager() {
-        if (mSerialIoManager != null) {
-            Log.i(TAG, "Stopping io manager ..");
-            mSerialIoManager.stop();
-            mSerialIoManager = null;
-        }
-    }
-
-    private void startIoManager() {
-        if (sPort != null) {
-            Log.i(TAG, "Starting io manager ..");
-            mSerialIoManager = new SerialInputOutputManager(sPort, mListener);
-            //mExecutor.submit(mSerialIoManager);
-        }
-    }
-
-    private void onDeviceStateChange() {
-        stopIoManager();
-        startIoManager();
     }
 }
