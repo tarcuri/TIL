@@ -11,7 +11,6 @@ import android.widget.TextView;
 
 
 public class Dashboard extends AppCompatActivity {
-    private TextView mLog = (TextView) findViewById(R.id.isplog_textview);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -22,23 +21,24 @@ public class Dashboard extends AppCompatActivity {
         Typeface tf = Typeface.createFromAsset(getAssets(), "fonts/DSEG7Modern-Regular.ttf");
         tv.setTypeface(tf);
 
-        mLog.setEnabled(false);
-        mLog.append("starting ISPService...");
+        TextView log = (TextView) findViewById(R.id.isplog_textview);
+        log.setEnabled(false);
+        log.append("starting ISPService...");
 
         // start the ISP service
         Intent isp_intent = new Intent(this, ISPService.class);
         startService(isp_intent);
 
-        mLog.append("DONE.\n");
+        log.append("DONE.\n");
 
         for (int i = 0; i < 50; i++) {
             if (i % 3 == 0) {
-                mLog.append("14.6\n");
+                log.append("14.6\n");
             } else if (i % 7 == 0) {
-                mLog.append("14.8\n");
-                mLog.append("14.8\n");
+                log.append("14.8\n");
+                log.append("14.8\n");
             } else {
-                mLog.append("14.7\n");
+                log.append("14.7\n");
             }
         }
     }
