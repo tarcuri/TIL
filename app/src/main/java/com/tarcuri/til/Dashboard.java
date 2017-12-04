@@ -43,10 +43,6 @@ public class Dashboard extends AppCompatActivity {
 
     private UsbManager mUsbManager;
     private ListView mListView;
-    private TextView mProgressBarTitle;
-    private ProgressBar mProgressBar;
-
-    private Context mIspInstance;
 
     private static final int MESSAGE_REFRESH = 101;
     private static final long REFRESH_TIMEOUT_MILLIS = 5000;
@@ -66,22 +62,22 @@ public class Dashboard extends AppCompatActivity {
 //        }
 //
 //    };
+//
+//    private class IspUpdateReceiver extends BroadcastReceiver {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//            if (intent.getAction().equals(ISPService.ISP_SERVICE_CONNECTED)) {
+//                // Do stuff - maybe update my view based on the changed DB contents
+//                Toast.makeText(context, "ISP Connection received", Toast.LENGTH_SHORT).show();
+//            } else if (intent.getAction().equals(ISPService.ISP_DATA_RECEIVED)) {
+//                Toast.makeText(context, "ISP DATA received", Toast.LENGTH_SHORT).show();
+//                TextView tv = (TextView) findViewById(R.id.afr_dashboard);
+//                tv.setText("0.0");
+//            }
+//        }
+//    }
 
-    private class IspUpdateReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(ISPService.ISP_SERVICE_CONNECTED)) {
-                // Do stuff - maybe update my view based on the changed DB contents
-                Toast.makeText(context, "ISP Connection received", Toast.LENGTH_SHORT).show();
-            } else if (intent.getAction().equals(ISPService.ISP_DATA_RECEIVED)) {
-                Toast.makeText(context, "ISP DATA received", Toast.LENGTH_SHORT).show();
-                TextView tv = (TextView) findViewById(R.id.afr_dashboard);
-                tv.setText("0.0");
-            }
-        }
-    }
-
-    private IspUpdateReceiver mIspUpdateReceiver;
+//    private IspUpdateReceiver mIspUpdateReceiver;
 
     private List<UsbSerialPort> mEntries = new ArrayList<UsbSerialPort>();
     private ArrayAdapter<UsbSerialPort> mAdapter;
@@ -93,8 +89,6 @@ public class Dashboard extends AppCompatActivity {
 
         mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         mListView = (ListView) findViewById(R.id.device_list);
-        mProgressBar = (ProgressBar) findViewById(R.id.progress_bar);
-        mProgressBarTitle = (TextView) findViewById(R.id.progress_bar_title);
 
         mAdapter = new ArrayAdapter<UsbSerialPort>(this,
                 android.R.layout.simple_expandable_list_item_2, mEntries) {
@@ -137,13 +131,11 @@ public class Dashboard extends AppCompatActivity {
                 }
 
                 final UsbSerialPort port = mEntries.get(position);
-                startISP(port);
+                startLogger(port);
             }
         });
 
-        TextView tv = (TextView) findViewById(R.id.afr_dashboard);
-        Typeface tf = Typeface.createFromAsset(getAssets(), "fonts/DSEG7Modern-Regular.ttf");
-        tv.setTypeface(tf);
+
     }
 
     @Override
@@ -151,14 +143,14 @@ public class Dashboard extends AppCompatActivity {
         super.onResume();
 //        mHandler.sendEmptyMessage(MESSAGE_REFRESH);
 
-        Toast.makeText(this, "Dashboard::onResume", Toast.LENGTH_SHORT).show();
-        if (mIspUpdateReceiver == null) {
-            mIspUpdateReceiver = new IspUpdateReceiver();
-            IntentFilter intentFilter = new IntentFilter();
-            intentFilter.addAction(ISPService.ISP_SERVICE_CONNECTED);
-            intentFilter.addAction(ISPService.ISP_DATA_RECEIVED);
-            registerReceiver(mIspUpdateReceiver, intentFilter);
-        }
+//        Toast.makeText(this, "Dashboard::onResume", Toast.LENGTH_SHORT).show();
+//        if (mIspUpdateReceiver == null) {
+//            mIspUpdateReceiver = new IspUpdateReceiver();
+//            IntentFilter intentFilter = new IntentFilter();
+//            intentFilter.addAction(ISPService.ISP_SERVICE_CONNECTED);
+//            intentFilter.addAction(ISPService.ISP_DATA_RECEIVED);
+//            registerReceiver(mIspUpdateReceiver, intentFilter);
+//        }
     }
 
     @Override
@@ -167,14 +159,12 @@ public class Dashboard extends AppCompatActivity {
 //        mHandler.removeMessages(MESSAGE_REFRESH);
 
         Toast.makeText(this, "Dashboard::onPause", Toast.LENGTH_SHORT).show();
-        if (mIspUpdateReceiver != null) {
-            unregisterReceiver(mIspUpdateReceiver);
-        }
+//        if (mIspUpdateReceiver != null) {
+//            unregisterReceiver(mIspUpdateReceiver);
+//        }
     }
 
     public void refreshDeviceList(View view) {
-        showProgressBar();
-
         Log.d(TAG, "Refreshing device list ...");
 
         final List<UsbSerialDriver> drivers =
@@ -191,30 +181,10 @@ public class Dashboard extends AppCompatActivity {
         mEntries.clear();
         mEntries.addAll(result);
         mAdapter.notifyDataSetChanged();
-        mProgressBarTitle.setText(
-                String.format("%s device(s) found",Integer.valueOf(mEntries.size())));
-        hideProgressBar();
         Log.d(TAG, "Done refreshing, " + mEntries.size() + " entries found.");
     }
 
-    private void showProgressBar() {
-        mProgressBar.setVisibility(View.VISIBLE);
-        mProgressBarTitle.setText(R.string.refreshing);
-    }
-
-    private void hideProgressBar() {
-        mProgressBar.setVisibility(View.INVISIBLE);
-    }
-
-    public void startISP(UsbSerialPort port) {
-        ISPService.connectISPService(this, port);
-        while (!ISPService.isConnected) {
-            try {
-                Thread.sleep(300);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-        mIspInstance = ISPService.getInstance();
+    public void startLogger(UsbSerialPort port) {
+        ISPLogger.launch(this, port);
     }
 }
