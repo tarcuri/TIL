@@ -5,24 +5,55 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.hoho.android.usbserial.driver.UsbSerialPort;
+import com.hoho.android.usbserial.util.SerialInputOutputManager;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by tarcuri on 10/20/17.
  */
 
 public class ISPService extends Service {
+    private final String TAG = ISPService.class.getSimpleName();
+
     static final String ISP_SERVICE_CONNECTED = "com.tarcuri.til.ISP_SERVICE_CONNECTED";
+    static final String ISP_DATA_RECEIVED = "com.tarcuri.til.ISP_DATA_RECEIVED";
 
     private static final int IPS_BAUD_RATE = 19200;
 
     private static UsbSerialPort sPort = null;
+    private SerialInputOutputManager mSerialIoManager;
+
+    private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
 
     private static Context sInstance = null;
 
     public static boolean isConnected = false;
+
+    private final SerialInputOutputManager.Listener mListener =
+            new SerialInputOutputManager.Listener() {
+
+                @Override
+                public void onRunError(Exception e) {
+                    Log.d(TAG, "Runner stopped.");
+                }
+
+                @Override
+                public void onNewData(final byte[] data) {
+                    sendBroadcast(new Intent(ISPService.ISP_DATA_RECEIVED));
+//                    ISPService.this.runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            SerialConsoleActivity.this.updateReceivedData(data);
+//                        }
+//                    });
+                }
+            };
 
     @Override
     public void onCreate() {
@@ -54,6 +85,22 @@ public class ISPService extends Service {
 
     static Context getInstance() {
         return sInstance;
+    }
+
+    private void stopIoManager() {
+        if (mSerialIoManager != null) {
+            Log.i(TAG, "Stopping io manager ..");
+            mSerialIoManager.stop();
+            mSerialIoManager = null;
+        }
+    }
+
+    private void startIoManager() {
+        if (sPort != null) {
+            Log.i(TAG, "Starting io manager ..");
+            mSerialIoManager = new SerialInputOutputManager(sPort, mListener);
+            mExecutor.submit(mSerialIoManager);
+        }
     }
 
 //    private void findSerialPortDevice() {

@@ -73,6 +73,10 @@ public class Dashboard extends AppCompatActivity {
             if (intent.getAction().equals(ISPService.ISP_SERVICE_CONNECTED)) {
                 // Do stuff - maybe update my view based on the changed DB contents
                 Toast.makeText(context, "ISP Connection received", Toast.LENGTH_SHORT).show();
+            } else if (intent.getAction().equals(ISPService.ISP_DATA_RECEIVED)) {
+                Toast.makeText(context, "ISP DATA received", Toast.LENGTH_SHORT).show();
+                TextView tv = (TextView) findViewById(R.id.afr_dashboard);
+                tv.setText("0.0");
             }
         }
     }
@@ -150,7 +154,9 @@ public class Dashboard extends AppCompatActivity {
         Toast.makeText(this, "Dashboard::onResume", Toast.LENGTH_SHORT).show();
         if (mIspUpdateReceiver == null) {
             mIspUpdateReceiver = new IspUpdateReceiver();
-            IntentFilter intentFilter = new IntentFilter(ISPService.ISP_SERVICE_CONNECTED);
+            IntentFilter intentFilter = new IntentFilter();
+            intentFilter.addAction(ISPService.ISP_SERVICE_CONNECTED);
+            intentFilter.addAction(ISPService.ISP_DATA_RECEIVED);
             registerReceiver(mIspUpdateReceiver, intentFilter);
         }
     }
