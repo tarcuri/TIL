@@ -3,6 +3,7 @@ package com.tarcuri.til;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Typeface;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
@@ -21,6 +22,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.TwoLineListItem;
 
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
@@ -34,6 +36,8 @@ import org.w3c.dom.Text;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.Thread.sleep;
+
 public class Dashboard extends AppCompatActivity {
     private final String TAG = Dashboard.class.getSimpleName();
 
@@ -41,6 +45,8 @@ public class Dashboard extends AppCompatActivity {
     private ListView mListView;
     private TextView mProgressBarTitle;
     private ProgressBar mProgressBar;
+
+    private Context mIspInstance;
 
     private static final int MESSAGE_REFRESH = 101;
     private static final long REFRESH_TIMEOUT_MILLIS = 5000;
@@ -60,6 +66,18 @@ public class Dashboard extends AppCompatActivity {
         }
 
     };
+
+    private class IspUpdateReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(ISPService.ISP_SERVICE_CONNECTED)) {
+                // Do stuff - maybe update my view based on the changed DB contents
+                Toast.makeText(context, "ISP Connection received", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private IspUpdateReceiver mIspUpdateReceiver;
 
     private List<UsbSerialPort> mEntries = new ArrayList<UsbSerialPort>();
     private ArrayAdapter<UsbSerialPort> mAdapter;
@@ -115,7 +133,7 @@ public class Dashboard extends AppCompatActivity {
                 }
 
                 final UsbSerialPort port = mEntries.get(position);
-                //showConsoleActivity(port);
+                startISP(port);
             }
         });
 
@@ -128,12 +146,22 @@ public class Dashboard extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         mHandler.sendEmptyMessage(MESSAGE_REFRESH);
+
+        if (mIspUpdateReceiver == null) {
+            mIspUpdateReceiver = new IspUpdateReceiver();
+            IntentFilter intentFilter = new IntentFilter(ISPService.ISP_SERVICE_CONNECTED);
+            registerReceiver(mIspUpdateReceiver, intentFilter);
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         mHandler.removeMessages(MESSAGE_REFRESH);
+
+        if (mIspUpdateReceiver != null) {
+            unregisterReceiver(mIspUpdateReceiver);
+        }
     }
 
     private void refreshDeviceList() {
@@ -182,9 +210,15 @@ public class Dashboard extends AppCompatActivity {
         mProgressBar.setVisibility(View.INVISIBLE);
     }
 
-    public void connectUSB(View view) {
-        TextView tv = (TextView) findViewById(R.id.afr_dashboard);
-        Typeface tf = Typeface.createFromAsset(getAssets(), getString(R.string.afr_font));
-        tv.setTypeface(tf);
+    public void startISP(UsbSerialPort port) {
+        ISPService.connectISPService(this, port);
+        while (!ISPService.isConnected) {
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        mIspInstance = ISPService.getInstance();
     }
 }
