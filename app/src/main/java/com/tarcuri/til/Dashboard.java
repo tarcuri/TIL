@@ -51,21 +51,21 @@ public class Dashboard extends AppCompatActivity {
     private static final int MESSAGE_REFRESH = 101;
     private static final long REFRESH_TIMEOUT_MILLIS = 5000;
 
-    private final Handler mHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MESSAGE_REFRESH:
-                    refreshDeviceList();
-                    mHandler.sendEmptyMessageDelayed(MESSAGE_REFRESH, REFRESH_TIMEOUT_MILLIS);
-                    break;
-                default:
-                    super.handleMessage(msg);
-                    break;
-            }
-        }
-
-    };
+//    private final Handler mHandler = new Handler() {
+//        @Override
+//        public void handleMessage(Message msg) {
+//            switch (msg.what) {
+//                case MESSAGE_REFRESH:
+//                    refreshDeviceList();
+//                    mHandler.sendEmptyMessageDelayed(MESSAGE_REFRESH, REFRESH_TIMEOUT_MILLIS);
+//                    break;
+//                default:
+//                    super.handleMessage(msg);
+//                    break;
+//            }
+//        }
+//
+//    };
 
     private class IspUpdateReceiver extends BroadcastReceiver {
         @Override
@@ -145,8 +145,9 @@ public class Dashboard extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        mHandler.sendEmptyMessage(MESSAGE_REFRESH);
+//        mHandler.sendEmptyMessage(MESSAGE_REFRESH);
 
+        Toast.makeText(this, "Dashboard::onResume", Toast.LENGTH_SHORT).show();
         if (mIspUpdateReceiver == null) {
             mIspUpdateReceiver = new IspUpdateReceiver();
             IntentFilter intentFilter = new IntentFilter(ISPService.ISP_SERVICE_CONNECTED);
@@ -157,48 +158,37 @@ public class Dashboard extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        mHandler.removeMessages(MESSAGE_REFRESH);
+//        mHandler.removeMessages(MESSAGE_REFRESH);
 
+        Toast.makeText(this, "Dashboard::onPause", Toast.LENGTH_SHORT).show();
         if (mIspUpdateReceiver != null) {
             unregisterReceiver(mIspUpdateReceiver);
         }
     }
 
-    private void refreshDeviceList() {
+    public void refreshDeviceList(View view) {
         showProgressBar();
 
-        new AsyncTask<Void, Void, List<UsbSerialPort>>() {
-            @Override
-            protected List<UsbSerialPort> doInBackground(Void... params) {
-                Log.d(TAG, "Refreshing device list ...");
-                SystemClock.sleep(1000);
+        Log.d(TAG, "Refreshing device list ...");
 
-                final List<UsbSerialDriver> drivers =
-                        UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
+        final List<UsbSerialDriver> drivers =
+                UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
 
-                final List<UsbSerialPort> result = new ArrayList<UsbSerialPort>();
-                for (final UsbSerialDriver driver : drivers) {
-                    final List<UsbSerialPort> ports = driver.getPorts();
-                    Log.d(TAG, String.format("+ %s: %s port%s",
-                            driver, Integer.valueOf(ports.size()), ports.size() == 1 ? "" : "s"));
-                    result.addAll(ports);
-                }
+        final List<UsbSerialPort> result = new ArrayList<UsbSerialPort>();
+        for (final UsbSerialDriver driver : drivers) {
+            final List<UsbSerialPort> ports = driver.getPorts();
+            Log.d(TAG, String.format("+ %s: %s port%s",
+                    driver, Integer.valueOf(ports.size()), ports.size() == 1 ? "" : "s"));
+            result.addAll(ports);
+        }
 
-                return result;
-            }
-
-            @Override
-            protected void onPostExecute(List<UsbSerialPort> result) {
-                mEntries.clear();
-                mEntries.addAll(result);
-                mAdapter.notifyDataSetChanged();
-                mProgressBarTitle.setText(
-                        String.format("%s device(s) found",Integer.valueOf(mEntries.size())));
-                hideProgressBar();
-                Log.d(TAG, "Done refreshing, " + mEntries.size() + " entries found.");
-            }
-
-        }.execute((Void) null);
+        mEntries.clear();
+        mEntries.addAll(result);
+        mAdapter.notifyDataSetChanged();
+        mProgressBarTitle.setText(
+                String.format("%s device(s) found",Integer.valueOf(mEntries.size())));
+        hideProgressBar();
+        Log.d(TAG, "Done refreshing, " + mEntries.size() + " entries found.");
     }
 
     private void showProgressBar() {
