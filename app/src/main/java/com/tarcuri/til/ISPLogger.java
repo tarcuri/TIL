@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.CompoundButton;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
@@ -35,6 +36,7 @@ public class ISPLogger extends AppCompatActivity {
     private static PendingIntent mPermissionIntent = null;
 
     private TextView mLogView;
+    private ScrollView mScrollView;
 
     private static UsbSerialPort sPort = null;
 
@@ -42,25 +44,27 @@ public class ISPLogger extends AppCompatActivity {
 
     private SerialInputOutputManager mSerialIoManager;
 
-    private final SerialInputOutputManager.Listener mListener =
-            new SerialInputOutputManager.Listener() {
-
-                @Override
-                public void onRunError(Exception e) {
-                    Log.d(TAG, "Runner stopped.");
-                }
-
-                @Override
-                public void onNewData(final byte[] data) {
-                    ISPLogger.this.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mLogView.append("receieved data\n");
-                            ISPLogger.this.updateReceivedData(data);
-                        }
-                    });
-                }
-            };
+//    private final SerialInputOutputManager.Listener mListener =
+//            new SerialInputOutputManager.Listener() {
+//
+//                @Override
+//                public void onRunError(Exception e) {
+//                    Log.d(TAG, "Runner stopped.");
+//                    mLogView.append("RUNNER STOPPED\n");
+//                }
+//
+//                @Override
+//                public void onNewData(final byte[] data) {
+//                    mLogView.append("onNewData\n");
+//                    ISPLogger.this.runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            mLogView.append("receieved data\n");
+//                            ISPLogger.this.updateReceivedData(data);
+//                        }
+//                    });
+//                }
+//            };
 
     private void setFilter() {
         IntentFilter filter = new IntentFilter();
@@ -108,6 +112,7 @@ public class ISPLogger extends AppCompatActivity {
         setFilter();
 
         mLogView = (TextView) findViewById(R.id.isplog_textview);
+        mScrollView = (ScrollView) findViewById(R.id.log_view);
 
         // register intent for USB devices
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
@@ -173,18 +178,20 @@ public class ISPLogger extends AppCompatActivity {
         super.onResume();
         Log.d(TAG, "Resumed, port=" + sPort);
         if (sPort == null) {
-            mLogView.setText("No serial device.");
+            mLogView.append("No serial device\n");
         } else {
             final UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
             UsbDeviceConnection connection = usbManager.openDevice(sPort.getDriver().getDevice());
             if (connection == null) {
-                mLogView.setText("Opening device failed");
+                mLogView.append("Opening device failed\n");
                 return;
             }
 
             try {
+                mLogView.append("opening connection\n");
                 sPort.open(connection);
+                mLogView.append("setting parameters\n");
                 sPort.setParameters(19200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
 
                 showStatus(mLogView, "CD  - Carrier Detect", sPort.getCD());
@@ -194,9 +201,13 @@ public class ISPLogger extends AppCompatActivity {
                 showStatus(mLogView, "DSR - Data Set Ready", sPort.getDSR());
                 showStatus(mLogView, "RI  - Ring Indicator", sPort.getRI());
                 showStatus(mLogView, "RTS - Request To Send", sPort.getRTS());
+
+                byte buffer[] = new byte[16];
+                sPort.read(buffer, 1000);
+                updateReceivedData(buffer);
             } catch (IOException e) {
                 Log.e(TAG, "Error setting up device: " + e.getMessage(), e);
-                mLogView.setText("Error opening device: " + e.getMessage());
+                mLogView.append("Error opening device: " + e.getMessage() + "\n");
                 try {
                     sPort.close();
                 } catch (IOException e2) {
@@ -204,8 +215,10 @@ public class ISPLogger extends AppCompatActivity {
                 }
                 sPort = null;
                 return;
+            } catch (Exception e) {
+                mLogView.append("received unhandled exception\n");
             }
-            mLogView.setText("Serial device: " + sPort.getClass().getSimpleName());
+            mLogView.append("Serial device: " + sPort.getClass().getSimpleName() + "\n");
         }
         onDeviceStateChange();
     }
@@ -219,7 +232,7 @@ public class ISPLogger extends AppCompatActivity {
 
     public void disconnect() {
         Toast.makeText(this, "disconnecting", Toast.LENGTH_SHORT).show();
-        mLogView.append("disconnecting");
+        mLogView.append("disconnecting\n");
     }
 
     public void startLog() {
@@ -232,17 +245,21 @@ public class ISPLogger extends AppCompatActivity {
 
     private void stopIoManager() {
         if (mSerialIoManager != null) {
-            Log.i(TAG, "Stopping io manager ..");
-            mSerialIoManager.stop();
-            mSerialIoManager = null;
+//            Log.i(TAG, "Stopping io manager ..");
+//            mLogView.append("stopping IO manager...\n");
+//            mScrollView.smoothScrollTo(0, mLogView.getBottom());
+//            mSerialIoManager.stop();
+//            mSerialIoManager = null;
         }
     }
 
     private void startIoManager() {
         if (sPort != null) {
-            Log.i(TAG, "Starting io manager ..");
-            mSerialIoManager = new SerialInputOutputManager(sPort, mListener);
-            mExecutor.submit(mSerialIoManager);
+//            Log.i(TAG, "Starting io manager ..");
+//            mLogView.append("starting IO manager...\n");
+//            mScrollView.smoothScrollTo(0, mLogView.getBottom());
+//            mSerialIoManager = new SerialInputOutputManager(sPort, mListener);
+//            mExecutor.submit(mSerialIoManager);
         }
     }
 
@@ -255,8 +272,7 @@ public class ISPLogger extends AppCompatActivity {
         final String message = "Read " + data.length + " bytes: \n"
                 + HexDump.dumpHexString(data) + "\n\n";
         mLogView.append(message);
-        //mDumpTextView.append(message);
-        //mScrollView.smoothScrollTo(0, mDumpTextView.getBottom());
+        mScrollView.smoothScrollTo(0, mLogView.getBottom());
     }
 
     static void launch(Context context, UsbSerialPort port) {
