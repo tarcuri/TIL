@@ -1,5 +1,6 @@
 package com.tarcuri.til;
 
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -11,6 +12,7 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -19,6 +21,7 @@ import android.view.ViewGroup;
 import android.view.LayoutInflater;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -34,6 +37,8 @@ import com.hoho.android.usbserial.util.SerialInputOutputManager;
 import org.w3c.dom.Text;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 
 import static java.lang.Thread.sleep;
@@ -44,6 +49,12 @@ public class Dashboard extends AppCompatActivity {
     private static final String ACTION_USB_ATTACHED = "android.hardware.usb.action.USB_DEVICE_ATTACHED";
     private static final String ACTION_USB_DETACHED = "android.hardware.usb.action.USB_DEVICE_DETACHED";
     private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
+
+    private static PendingIntent mPermissionIntent = null;
+
+    private static boolean mUsbPermission = false;
+
+    private static UsbSerialPort sPort = null;
 
     private UsbManager mUsbManager;
     private ListView mListView;
@@ -100,10 +111,16 @@ public class Dashboard extends AppCompatActivity {
                     // user granted permission
                     Toast toast = Toast.makeText(context, usb_perms_text, duration);
                     toast.show();
+
+                    mUsbPermission = true;
+                    Button log_button = (Button) findViewById(R.id.start_log_button);
+                    log_button.setVisibility(Button.VISIBLE);
                 } else {
                     // user did not grant permissions
                     Toast toast = Toast.makeText(context, usb_noperms_text, duration);
                     toast.show();
+
+                    mUsbPermission = false;
                 }
             } else if (intent.getAction().equals(ACTION_USB_ATTACHED)) {
                 Toast toast = Toast.makeText(context, usb_attached_text, duration);
@@ -167,7 +184,7 @@ public class Dashboard extends AppCompatActivity {
                 }
 
                 final UsbSerialPort port = mEntries.get(position);
-                startLogger(port);
+                useDevice(port);
             }
         });
 
@@ -177,6 +194,11 @@ public class Dashboard extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+
+        if (mUsbPermission) {
+            Button log_button = (Button) findViewById(R.id.start_log_button);
+            log_button.setVisibility(Button.VISIBLE);
+        }
 //        mHandler.sendEmptyMessage(MESSAGE_REFRESH);
 
 //        Toast.makeText(this, "Dashboard::onResume", Toast.LENGTH_SHORT).show();
@@ -220,7 +242,22 @@ public class Dashboard extends AppCompatActivity {
         Log.d(TAG, "Done refreshing, " + mEntries.size() + " entries found.");
     }
 
-    public void startLogger(UsbSerialPort port) {
-        ISPLogger.launch(this, port);
+    public void useDevice(UsbSerialPort port) {
+        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        registerReceiver(mUsbReceiver, filter);
+        sPort = port;
+
+        usbManager.requestPermission(port.getDriver().getDevice(), mPermissionIntent);
+    }
+
+    public void startLogger(View view) {
+        Log.d(TAG, "Starting ISPLogger...");
+        if (sPort != null) {
+            ISPLogger.launch(this, sPort);
+        } else {
+            Toast.makeText(this, "No device selected", Toast.LENGTH_SHORT).show();
+        }
     }
 }

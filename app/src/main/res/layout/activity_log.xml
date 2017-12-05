@@ -6,20 +6,30 @@
     android:layout_height="match_parent"
     tools:context="com.tarcuri.til.ISPLogger">
 
+    <ToggleButton
+        android:id="@+id/log_button"
+        android:layout_width="225dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:textOff="Start Log"
+        android:textOn="Stop Log"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="313dp"
         android:layout_height="240dp"
-        android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/log_view"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.509"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/connect_button"
-        app:layout_constraintVertical_bias="0.04"
+        app:layout_constraintTop_toBottomOf="@+id/log_button"
         app:srcCompat="@drawable/innovate_guage_face" />
 
     <TextView
@@ -44,14 +54,18 @@
 
     <ScrollView
         android:id="@+id/log_view"
-        android:layout_width="368dp"
-        android:layout_height="185dp"
+        android:layout_width="352dp"
+        android:layout_height="246dp"
         android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintHorizontal_bias="0.481"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imageView"
+        app:layout_constraintVertical_bias="0.37">
 
         <TextView
             android:id="@+id/isplog_textview"
@@ -59,29 +73,5 @@
             android:layout_height="wrap_content" />
     </ScrollView>
 
-    <ToggleButton
-        android:id="@+id/connect_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="8dp"
-        android:layout_marginTop="8dp"
-        android:checked="false"
-        android:text="Connect"
-        android:textOff="Disconnected"
-        android:textOn="Connected"
-        app:layout_constraintEnd_toEndOf="@+id/imageView"
-        app:layout_constraintTop_toTopOf="parent" />
 
-    <ToggleButton
-        android:id="@+id/log_button"
-        android:layout_width="119dp"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="64dp"
-        android:layout_marginRight="64dp"
-        android:text="REC"
-        android:textOff="Record"
-        android:textOn="Recording"
-        app:layout_constraintBaseline_toBaselineOf="@+id/connect_button"
-        app:layout_constraintEnd_toStartOf="@+id/connect_button"
-        app:layout_constraintStart_toStartOf="@+id/imageView" />
 </android.support.constraint.ConstraintLayout>

@@ -114,35 +114,13 @@ public class ISPLogger extends AppCompatActivity {
         mLogView = (TextView) findViewById(R.id.isplog_textview);
         mScrollView = (ScrollView) findViewById(R.id.log_view);
 
-        // register intent for USB devices
-        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
-        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        registerReceiver(mUsbReceiver, filter);
-
-        usbManager.requestPermission(sPort.getDriver().getDevice(), mPermissionIntent);
-
-        ToggleButton connect_toggle = (ToggleButton) findViewById(R.id.connect_button);
-        connect_toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    // connect
-                    connect();
-                } else {
-                    // disconnect
-                    disconnect();
-                }
-            }
-        });
-
+        // start/stop logging
         ToggleButton log_toggle = (ToggleButton) findViewById(R.id.log_button);
         log_toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    // connect
                     startLog();
                 } else {
-                    // disconnect
                     stopLog();
                 }
             }
@@ -201,10 +179,6 @@ public class ISPLogger extends AppCompatActivity {
                 showStatus(mLogView, "DSR - Data Set Ready", sPort.getDSR());
                 showStatus(mLogView, "RI  - Ring Indicator", sPort.getRI());
                 showStatus(mLogView, "RTS - Request To Send", sPort.getRTS());
-
-                byte buffer[] = new byte[16];
-                sPort.read(buffer, 1000);
-                updateReceivedData(buffer);
             } catch (IOException e) {
                 Log.e(TAG, "Error setting up device: " + e.getMessage(), e);
                 mLogView.append("Error opening device: " + e.getMessage() + "\n");
@@ -223,20 +197,9 @@ public class ISPLogger extends AppCompatActivity {
         onDeviceStateChange();
     }
 
-
-
-    public void connect() {
-        Toast.makeText(this, "connecting", Toast.LENGTH_SHORT).show();
-        mLogView.append("connecting\n");
-    }
-
-    public void disconnect() {
-        Toast.makeText(this, "disconnecting", Toast.LENGTH_SHORT).show();
-        mLogView.append("disconnecting\n");
-    }
-
     public void startLog() {
         Toast.makeText(this, "startLog", Toast.LENGTH_SHORT).show();
+        // TODO: launch ISP logger service
     }
 
     public void stopLog() {
