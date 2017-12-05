@@ -37,8 +37,6 @@ public class ISPService extends Service {
 
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
 
-    private static Context sInstance = null;
-
     public static boolean isConnected = false;
 
     private class ReadISP extends AsyncTask<UsbSerialPort, Long, Long> {
@@ -54,8 +52,14 @@ public class ISPService extends Service {
 
                 // TODO: signal task to stop
                 while (!error) try {
-                    int br = port.read(bbuf, 20);
+                    Log.d(TAG, "Waiting for read()");
+                    int br = port.read(bbuf, 500);
                     bytes_read += br;
+
+                    if (br == 0) {
+                        Log.d(TAG, "read timed out");
+                        continue;
+                    }
 
                     System.arraycopy(bbuf, 0, pbuf, packet_bytes, br);
                     packet_bytes += br;
@@ -88,8 +92,10 @@ public class ISPService extends Service {
 
                             if (packet_words == packet_words_total) {
                                 // complete packet
-
+                                Log.i(TAG, "found complete packet");
                                 packet = null;
+                                packet_words = 0;
+                                packet_bytes = 0;
                             }
                         }
                     }
@@ -99,23 +105,12 @@ public class ISPService extends Service {
             }
             return bytes_read;
         }
-
-        protected void onProgressUpdate(Integer... progress) {
-
-        }
-
-        protected void onPostExecute(Integer result) {
-
-        }
-
     }
 
     @Override
     public void onCreate() {
         Log.i(TAG, "onCreate");
         // The service is being created
-
-        sInstance = this;
 
 //        Toast.makeText(this, "onCreate", Toast.LENGTH_SHORT).show();
 //        isConnected = true;
@@ -127,6 +122,7 @@ public class ISPService extends Service {
         Log.i(TAG, "onStartCommand");
         // The service is starting, due to a call to startService()
 //        Toast.makeText(this, "onStartCommand", Toast.LENGTH_SHORT).show();
+        new ReadISP().execute(sPort);
         return START_STICKY;
     }
 
@@ -142,11 +138,7 @@ public class ISPService extends Service {
 
     }
 
-    static Context getInstance() {
-        return sInstance;
-    }
-
-    static void connectISPService(Context context, UsbSerialPort port) {
+    static void startISPService(Context context, UsbSerialPort port) {
         sPort = port;
         Intent isp_intent = new Intent(context, ISPService.class);
         context.startService(isp_intent);

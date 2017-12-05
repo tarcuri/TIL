@@ -169,13 +169,15 @@ public class Dashboard extends AppCompatActivity {
                 mLogView.append("setting parameters\n");
                 sPort.setParameters(19200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
 
-                showStatus(mLogView, "CD  - Carrier Detect", sPort.getCD());
-                showStatus(mLogView, "CTS - Clear To Send", sPort.getCTS());
-                showStatus(mLogView, "DSR - Data Set Ready", sPort.getDSR());
-                showStatus(mLogView, "DTR - Data Terminal Ready", sPort.getDTR());
-                showStatus(mLogView, "DSR - Data Set Ready", sPort.getDSR());
-                showStatus(mLogView, "RI  - Ring Indicator", sPort.getRI());
-                showStatus(mLogView, "RTS - Request To Send", sPort.getRTS());
+                ISPService.startISPService(this, sPort);
+
+//                showStatus(mLogView, "CD  - Carrier Detect", sPort.getCD());
+//                showStatus(mLogView, "CTS - Clear To Send", sPort.getCTS());
+//                showStatus(mLogView, "DSR - Data Set Ready", sPort.getDSR());
+//                showStatus(mLogView, "DTR - Data Terminal Ready", sPort.getDTR());
+//                showStatus(mLogView, "DSR - Data Set Ready", sPort.getDSR());
+//                showStatus(mLogView, "RI  - Ring Indicator", sPort.getRI());
+//                showStatus(mLogView, "RTS - Request To Send", sPort.getRTS());
             } catch (IOException e) {
                 Log.e(TAG, "Error setting up device: " + e.getMessage(), e);
                 mLogView.append("Error opening device: " + e.getMessage() + "\n");
@@ -191,7 +193,7 @@ public class Dashboard extends AppCompatActivity {
             }
             mLogView.append("Serial device: " + sPort.getClass().getSimpleName() + "\n");
         }
-        onDeviceStateChange();
+//        onDeviceStateChange();
     }
 
     public void startLog() {
