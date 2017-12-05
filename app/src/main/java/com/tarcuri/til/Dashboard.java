@@ -1,11 +1,15 @@
 package com.tarcuri.til;
 
 import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.Typeface;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -38,6 +42,24 @@ public class Dashboard extends AppCompatActivity {
     private static UsbSerialPort sPort = null;
 
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
+
+    // need to bind to ISP service
+    private boolean mBound;
+    private ISPService mISPService;
+
+    private class IspUpdateReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(ISPService.ISP_SERVICE_CONNECTED)) {
+                // Do stuff - maybe update my view based on the changed DB contents
+                Toast.makeText(context, "ISP Connection received", Toast.LENGTH_SHORT).show();
+            } else if (intent.getAction().equals(ISPService.ISP_LC1_RECEIVED)) {
+                LC1Packet packet = mISPService.getPacket();
+                TextView tv = (TextView) findViewById(R.id.lamba_text);
+                tv.setText("0.0");
+            }
+        }
+    }
 
     private SerialInputOutputManager mSerialIoManager;
 
@@ -169,7 +191,7 @@ public class Dashboard extends AppCompatActivity {
                 mLogView.append("setting parameters\n");
                 sPort.setParameters(19200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
 
-                ISPService.startISPService(this, sPort);
+                ISPService.startISPService(this, sPort, mConnection);
 
 //                showStatus(mLogView, "CD  - Carrier Detect", sPort.getCD());
 //                showStatus(mLogView, "CTS - Clear To Send", sPort.getCTS());
@@ -236,6 +258,22 @@ public class Dashboard extends AppCompatActivity {
         mLogView.append(message);
         mScrollView.smoothScrollTo(0, mLogView.getBottom());
     }
+
+    private ServiceConnection mConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className,
+                                       IBinder service) {
+            // We've bound to LocalService, cast the IBinder and get LocalService instance
+            ISPService.LocalBinder binder = (ISPService.LocalBinder) service;
+            mISPService = binder.getService();
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName arg0) {
+            mBound = false;
+        }
+    };
 
     static void launch(Context context, UsbSerialPort port) {
         sPort = port;

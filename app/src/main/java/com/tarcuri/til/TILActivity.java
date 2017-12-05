@@ -67,19 +67,7 @@ public class TILActivity extends AppCompatActivity {
 //
 //    };
 //
-//    private class IspUpdateReceiver extends BroadcastReceiver {
-//        @Override
-//        public void onReceive(Context context, Intent intent) {
-//            if (intent.getAction().equals(ISPService.ISP_SERVICE_CONNECTED)) {
-//                // Do stuff - maybe update my view based on the changed DB contents
-//                Toast.makeText(context, "ISP Connection received", Toast.LENGTH_SHORT).show();
-//            } else if (intent.getAction().equals(ISPService.ISP_DATA_RECEIVED)) {
-//                Toast.makeText(context, "ISP DATA received", Toast.LENGTH_SHORT).show();
-//                TextView tv = (TextView) findViewById(R.id.afr_dashboard);
-//                tv.setText("0.0");
-//            }
-//        }
-//    }
+
 
 //    private IspUpdateReceiver mIspUpdateReceiver;
 
