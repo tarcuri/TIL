@@ -15,6 +15,7 @@ import com.hoho.android.usbserial.util.HexDump;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -73,6 +74,7 @@ public class ISPService extends Service {
             for (UsbSerialPort port : ports) {
                 boolean error = false;
                 int read_mark = 0;
+                byte[] chunk;
                 byte[] bbuf = new byte[32];
 
                 mByteBuffer.clear();
@@ -86,15 +88,17 @@ public class ISPService extends Service {
                     if (br == 0) {
                         Log.d(TAG, "read timed out");
                         continue;
-                    } else {
-                        Log.d(TAG, "read " + br + "bytes: " + HexDump.dumpHexString(bbuf) + "\n");
-                        // chunk access for debug
-                        mChunkQueue.add(bbuf);
-                        sendBroadcast(new Intent(ISPService.ISP_DATA_RECEIVED));
                     }
 
+                    chunk = Arrays.copyOfRange(bbuf, 0, br);
+                    Log.d(TAG, "read " + br + " bytes: " + HexDump.dumpHexString(chunk) + "\n");
+
+                    // chunk access for debug
+                    mChunkQueue.add(chunk);
+                    sendBroadcast(new Intent(ISPService.ISP_DATA_RECEIVED));
+
                     // now process the bytebuffer
-                    mByteBuffer.put(bbuf);
+                    mByteBuffer.put(chunk);
 
                     // mark this location to continue reading
                     mByteBuffer.mark();
