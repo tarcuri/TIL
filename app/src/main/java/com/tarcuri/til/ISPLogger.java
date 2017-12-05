@@ -44,27 +44,27 @@ public class ISPLogger extends AppCompatActivity {
 
     private SerialInputOutputManager mSerialIoManager;
 
-//    private final SerialInputOutputManager.Listener mListener =
-//            new SerialInputOutputManager.Listener() {
-//
-//                @Override
-//                public void onRunError(Exception e) {
-//                    Log.d(TAG, "Runner stopped.");
-//                    mLogView.append("RUNNER STOPPED\n");
-//                }
-//
-//                @Override
-//                public void onNewData(final byte[] data) {
-//                    mLogView.append("onNewData\n");
-//                    ISPLogger.this.runOnUiThread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            mLogView.append("receieved data\n");
-//                            ISPLogger.this.updateReceivedData(data);
-//                        }
-//                    });
-//                }
-//            };
+    private final SerialInputOutputManager.Listener mListener =
+            new SerialInputOutputManager.Listener() {
+
+                @Override
+                public void onRunError(Exception e) {
+                    Log.d(TAG, "Runner stopped.");
+                    mLogView.append("RUNNER STOPPED\n");
+                }
+
+                @Override
+                public void onNewData(final byte[] data) {
+                    mLogView.append("onNewData\n");
+                    ISPLogger.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mLogView.append("receieved data\n");
+                            ISPLogger.this.updateReceivedData(data);
+                        }
+                    });
+                }
+            };
 
     private void setFilter() {
         IntentFilter filter = new IntentFilter();
@@ -245,21 +245,21 @@ public class ISPLogger extends AppCompatActivity {
 
     private void stopIoManager() {
         if (mSerialIoManager != null) {
-//            Log.i(TAG, "Stopping io manager ..");
-//            mLogView.append("stopping IO manager...\n");
-//            mScrollView.smoothScrollTo(0, mLogView.getBottom());
-//            mSerialIoManager.stop();
-//            mSerialIoManager = null;
+            Log.i(TAG, "Stopping io manager ..");
+            mLogView.append("stopping IO manager...\n");
+            mScrollView.smoothScrollTo(0, mLogView.getBottom());
+            mSerialIoManager.stop();
+            mSerialIoManager = null;
         }
     }
 
     private void startIoManager() {
         if (sPort != null) {
-//            Log.i(TAG, "Starting io manager ..");
-//            mLogView.append("starting IO manager...\n");
-//            mScrollView.smoothScrollTo(0, mLogView.getBottom());
-//            mSerialIoManager = new SerialInputOutputManager(sPort, mListener);
-//            mExecutor.submit(mSerialIoManager);
+            Log.i(TAG, "Starting io manager ..");
+            mLogView.append("starting IO manager...\n");
+            mScrollView.smoothScrollTo(0, mLogView.getBottom());
+            mSerialIoManager = new SerialInputOutputManager(sPort, mListener);
+            mExecutor.submit(mSerialIoManager);
         }
     }
 
