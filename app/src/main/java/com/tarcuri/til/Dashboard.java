@@ -199,6 +199,8 @@ public class Dashboard extends AppCompatActivity {
             Button log_button = (Button) findViewById(R.id.start_log_button);
             log_button.setVisibility(Button.VISIBLE);
         }
+
+        registerReceiver(mUsbReceiver, new IntentFilter(ACTION_USB_PERMISSION));
 //        mHandler.sendEmptyMessage(MESSAGE_REFRESH);
 
 //        Toast.makeText(this, "Dashboard::onResume", Toast.LENGTH_SHORT).show();
@@ -220,6 +222,9 @@ public class Dashboard extends AppCompatActivity {
 //        if (mIspUpdateReceiver != null) {
 //            unregisterReceiver(mIspUpdateReceiver);
 //        }
+        if (mUsbReceiver != null) {
+            unregisterReceiver(mUsbReceiver);
+        }
     }
 
     public void refreshDeviceList(View view) {

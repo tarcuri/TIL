@@ -66,50 +66,50 @@ public class ISPLogger extends AppCompatActivity {
                 }
             };
 
-    private void setFilter() {
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(ACTION_USB_PERMISSION);
-        filter.addAction(ACTION_USB_DETACHED);
-        filter.addAction(ACTION_USB_ATTACHED);
-        registerReceiver(mUsbReceiver, filter);
-    }
+//    private void setFilter() {
+//        IntentFilter filter = new IntentFilter();
+//        filter.addAction(ACTION_USB_PERMISSION);
+//        filter.addAction(ACTION_USB_DETACHED);
+//        filter.addAction(ACTION_USB_ATTACHED);
+//        registerReceiver(mUsbReceiver, filter);
+//    }
 
-    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            CharSequence usb_perms_text = "USB permissions granted";
-            CharSequence usb_noperms_text = "USB permissions NOT granted";
-            CharSequence usb_attached_text = "USB attached";
-            CharSequence usb_detached_text = "USB detatched";
-            int duration = Toast.LENGTH_SHORT;
-
-            if (intent.getAction().equals(ACTION_USB_PERMISSION)) {
-                boolean granted = intent.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
-                if (granted) {
-                    // user granted permission
-                    Toast toast = Toast.makeText(context, usb_perms_text, duration);
-                    toast.show();
-                } else {
-                    // user did not grant permissions
-                    Toast toast = Toast.makeText(context, usb_noperms_text, duration);
-                    toast.show();
-                }
-            } else if (intent.getAction().equals(ACTION_USB_ATTACHED)) {
-                Toast toast = Toast.makeText(context, usb_attached_text, duration);
-                toast.show();
-            } else if (intent.getAction().equals(ACTION_USB_DETACHED)) {
-                Toast toast = Toast.makeText(context, usb_detached_text, duration);
-                toast.show();
-            }
-        }
-    };
+//    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//            CharSequence usb_perms_text = "USB permissions granted";
+//            CharSequence usb_noperms_text = "USB permissions NOT granted";
+//            CharSequence usb_attached_text = "USB attached";
+//            CharSequence usb_detached_text = "USB detatched";
+//            int duration = Toast.LENGTH_SHORT;
+//
+//            if (intent.getAction().equals(ACTION_USB_PERMISSION)) {
+//                boolean granted = intent.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
+//                if (granted) {
+//                    // user granted permission
+//                    Toast toast = Toast.makeText(context, usb_perms_text, duration);
+//                    toast.show();
+//                } else {
+//                    // user did not grant permissions
+//                    Toast toast = Toast.makeText(context, usb_noperms_text, duration);
+//                    toast.show();
+//                }
+//            } else if (intent.getAction().equals(ACTION_USB_ATTACHED)) {
+//                Toast toast = Toast.makeText(context, usb_attached_text, duration);
+//                toast.show();
+//            } else if (intent.getAction().equals(ACTION_USB_DETACHED)) {
+//                Toast toast = Toast.makeText(context, usb_detached_text, duration);
+//                toast.show();
+//            }
+//        }
+//    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_log);
 
-        setFilter();
+//        setFilter();
 
         mLogView = (TextView) findViewById(R.id.isplog_textview);
         mScrollView = (ScrollView) findViewById(R.id.log_view);
