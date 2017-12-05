@@ -54,9 +54,9 @@ public class Dashboard extends AppCompatActivity {
                 Log.i(TAG, "ISP_LC1_RECEIVED");
                 LC1Packet packet = mISPService.getPacket();
                 TextView tv = (TextView) findViewById(R.id.lamba_text);
-                tv.setText("0.0");
-                byte[] buf = packet.getPacketBytes();
-                updateReceivedData(buf);
+                tv.setText(String.valueOf(packet.getAFR()));
+//                byte[] buf = packet.getPacketBytes();
+//                updateReceivedData(buf);
             }
         }
     }

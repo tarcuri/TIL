@@ -10,6 +10,8 @@ import java.nio.ByteOrder;
 public class LC1Packet {
     private static short LC1_LAMBDA_LOW_MASK = 0x7f;
     private static short LC1_LAMBDA_HIGH_MASK = 0x3f00;
+    private static short LC1_AFR_MULT_HIGH_BIT_MASK = 1 << 8;
+    private static short LC1_AFR_MULT_LOW_MASK = 0x7f;
     private short[] packet;
     private short header;
     private short word0;
@@ -38,11 +40,25 @@ public class LC1Packet {
 
     public short getWord1() { return word1; }
 
-    public float getLambda() {
+    public short getLambdaWord() {
         int l_high = (word1 & LC1_LAMBDA_HIGH_MASK) >> 1;
         int l_low = (word1 & LC1_LAMBDA_LOW_MASK);
 
-        short L = (short) (l_high | l_low);
-        return L;
+        return (short) (l_high | l_low);
+    }
+
+    public byte getMultiplier() {
+        int m_high = (word0 & LC1_AFR_MULT_HIGH_BIT_MASK) >> 1;
+        int m_low  = (word0 & LC1_AFR_MULT_LOW_MASK);
+
+        return (byte) (m_high | m_low);
+    }
+
+    // AFR = ((L + 500) * (AF7..0) / 10000
+    public float getAFR() {
+        short L = getLambdaWord();
+        byte multi = getMultiplier();
+
+        return (L + 500) * multi / 10000;
     }
 }
