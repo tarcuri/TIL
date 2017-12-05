@@ -6,66 +6,72 @@
     android:layout_height="match_parent"
     tools:context="com.tarcuri.til.Dashboard">
 
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="183dp"
-        android:layout_height="43dp"
+    <ToggleButton
+        android:id="@+id/log_button"
+        android:layout_width="225dp"
+        android:layout_height="wrap_content"
         android:layout_marginEnd="8dp"
-        android:layout_marginRight="8dp"
-        android:text="Select Device"
-        android:textAlignment="center"
-        android:textAppearance="@style/TextAppearance.AppCompat.Body1"
-        android:textSize="24sp"
-        app:layout_constraintBaseline_toBaselineOf="@+id/refresh_device_button"
-        app:layout_constraintEnd_toStartOf="@+id/refresh_device_button" />
-
-    <Button
-        android:id="@+id/refresh_device_button"
-        android:layout_width="87dp"
-        android:layout_height="47dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginRight="8dp"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:onClick="refreshDeviceList"
-        android:text="Refresh"
-        android:textSize="12sp"
-        app:layout_constraintEnd_toEndOf="@+id/device_list"
+        android:textOff="Start Log"
+        android:textOn="Stop Log"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ListView
-        android:id="@+id/device_list"
-        android:layout_width="318dp"
-        android:layout_height="57dp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.494"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/refresh_device_button" />
-
-    <Button
-        android:id="@+id/start_log_button"
-        android:layout_width="225dp"
-        android:layout_height="50dp"
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="313dp"
+        android:layout_height="240dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:elevation="0dp"
-        android:onClick="startLogger"
-        android:text="Start Logging"
-        android:visibility="invisible"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.509"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/device_list" />
+        app:layout_constraintTop_toBottomOf="@+id/log_button"
+        app:srcCompat="@drawable/innovate_guage_face" />
 
-    <Button
-        android:id="@+id/view_log_button"
-        android:layout_width="225dp"
-        android:layout_height="50dp"
+    <TextView
+        android:id="@+id/lamba_text"
+        android:layout_width="72dp"
+        android:layout_height="40dp"
+        android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:text="View / Share Logs"
+        android:ems="10"
+        android:inputType="none"
+        android:text="14.7"
+        android:textAlignment="center"
+        android:textColor="@android:color/holo_red_dark"
+        android:textSize="24sp"
+        android:typeface="monospace"
+        app:layout_constraintBottom_toBottomOf="@+id/imageView"
+        app:layout_constraintEnd_toEndOf="@+id/imageView"
+        app:layout_constraintStart_toStartOf="@+id/imageView"
+        app:layout_constraintTop_toTopOf="@+id/imageView" />
+
+    <ScrollView
+        android:id="@+id/log_view"
+        android:layout_width="352dp"
+        android:layout_height="246dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.481"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/start_log_button" />
+        app:layout_constraintTop_toBottomOf="@+id/imageView"
+        app:layout_constraintVertical_bias="0.37">
+
+        <TextView
+            android:id="@+id/isplog_textview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+    </ScrollView>
+
+
 </android.support.constraint.ConstraintLayout>

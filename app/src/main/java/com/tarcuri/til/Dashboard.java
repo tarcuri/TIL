@@ -1,47 +1,27 @@
 package com.tarcuri.til;
 
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.graphics.Typeface;
-import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
-import android.os.AsyncTask;
-import android.os.Handler;
-import android.os.Message;
-import android.os.SystemClock;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.LayoutInflater;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ListView;
-import android.widget.ProgressBar;
+import android.widget.CompoundButton;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.TwoLineListItem;
+import android.widget.ToggleButton;
 
-import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
-import com.hoho.android.usbserial.driver.UsbSerialProber;
 import com.hoho.android.usbserial.util.HexDump;
 import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
-import org.w3c.dom.Text;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-
-import static java.lang.Thread.sleep;
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Dashboard extends AppCompatActivity {
     private final String TAG = Dashboard.class.getSimpleName();
@@ -52,217 +32,213 @@ public class Dashboard extends AppCompatActivity {
 
     private static PendingIntent mPermissionIntent = null;
 
-    private static boolean mUsbPermission = false;
+    private TextView mLogView;
+    private ScrollView mScrollView;
 
     private static UsbSerialPort sPort = null;
 
-    private UsbManager mUsbManager;
-    private ListView mListView;
+    private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
 
-    private static final int MESSAGE_REFRESH = 101;
-    private static final long REFRESH_TIMEOUT_MILLIS = 5000;
+    private SerialInputOutputManager mSerialIoManager;
 
+    private final SerialInputOutputManager.Listener mListener =
+            new SerialInputOutputManager.Listener() {
 
+                @Override
+                public void onRunError(Exception e) {
+                    Log.d(TAG, "Runner stopped.");
+                    mLogView.append("RUNNER STOPPED\n");
+                }
 
-//    private final Handler mHandler = new Handler() {
-//        @Override
-//        public void handleMessage(Message msg) {
-//            switch (msg.what) {
-//                case MESSAGE_REFRESH:
-//                    refreshDeviceList();
-//                    mHandler.sendEmptyMessageDelayed(MESSAGE_REFRESH, REFRESH_TIMEOUT_MILLIS);
-//                    break;
-//                default:
-//                    super.handleMessage(msg);
-//                    break;
-//            }
-//        }
-//
-//    };
-//
-//    private class IspUpdateReceiver extends BroadcastReceiver {
-//        @Override
-//        public void onReceive(Context context, Intent intent) {
-//            if (intent.getAction().equals(ISPService.ISP_SERVICE_CONNECTED)) {
-//                // Do stuff - maybe update my view based on the changed DB contents
-//                Toast.makeText(context, "ISP Connection received", Toast.LENGTH_SHORT).show();
-//            } else if (intent.getAction().equals(ISPService.ISP_DATA_RECEIVED)) {
-//                Toast.makeText(context, "ISP DATA received", Toast.LENGTH_SHORT).show();
-//                TextView tv = (TextView) findViewById(R.id.afr_dashboard);
-//                tv.setText("0.0");
-//            }
-//        }
+                @Override
+                public void onNewData(final byte[] data) {
+                    mLogView.append("onNewData\n");
+                    Dashboard.this.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mLogView.append("receieved data\n");
+                            Dashboard.this.updateReceivedData(data);
+                        }
+                    });
+                }
+            };
+
+//    private void setFilter() {
+//        IntentFilter filter = new IntentFilter();
+//        filter.addAction(ACTION_USB_PERMISSION);
+//        filter.addAction(ACTION_USB_DETACHED);
+//        filter.addAction(ACTION_USB_ATTACHED);
+//        registerReceiver(mUsbReceiver, filter);
 //    }
 
-//    private IspUpdateReceiver mIspUpdateReceiver;
-
-    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            CharSequence usb_perms_text = "USB permissions granted";
-            CharSequence usb_noperms_text = "USB permissions NOT granted";
-            CharSequence usb_attached_text = "USB attached";
-            CharSequence usb_detached_text = "USB detatched";
-            int duration = Toast.LENGTH_SHORT;
-
-            if (intent.getAction().equals(ACTION_USB_PERMISSION)) {
-                boolean granted = intent.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
-                if (granted) {
-                    // user granted permission
-                    Toast toast = Toast.makeText(context, usb_perms_text, duration);
-                    toast.show();
-
-                    mUsbPermission = true;
-                    Button log_button = (Button) findViewById(R.id.start_log_button);
-                    log_button.setVisibility(Button.VISIBLE);
-                } else {
-                    // user did not grant permissions
-                    Toast toast = Toast.makeText(context, usb_noperms_text, duration);
-                    toast.show();
-
-                    mUsbPermission = false;
-                }
-            } else if (intent.getAction().equals(ACTION_USB_ATTACHED)) {
-                Toast toast = Toast.makeText(context, usb_attached_text, duration);
-                toast.show();
-            } else if (intent.getAction().equals(ACTION_USB_DETACHED)) {
-                Toast toast = Toast.makeText(context, usb_detached_text, duration);
-                toast.show();
-            }
-        }
-    };
-
-    private List<UsbSerialPort> mEntries = new ArrayList<UsbSerialPort>();
-    private ArrayAdapter<UsbSerialPort> mAdapter;
+//    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//            CharSequence usb_perms_text = "USB permissions granted";
+//            CharSequence usb_noperms_text = "USB permissions NOT granted";
+//            CharSequence usb_attached_text = "USB attached";
+//            CharSequence usb_detached_text = "USB detatched";
+//            int duration = Toast.LENGTH_SHORT;
+//
+//            if (intent.getAction().equals(ACTION_USB_PERMISSION)) {
+//                boolean granted = intent.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
+//                if (granted) {
+//                    // user granted permission
+//                    Toast toast = Toast.makeText(context, usb_perms_text, duration);
+//                    toast.show();
+//                } else {
+//                    // user did not grant permissions
+//                    Toast toast = Toast.makeText(context, usb_noperms_text, duration);
+//                    toast.show();
+//                }
+//            } else if (intent.getAction().equals(ACTION_USB_ATTACHED)) {
+//                Toast toast = Toast.makeText(context, usb_attached_text, duration);
+//                toast.show();
+//            } else if (intent.getAction().equals(ACTION_USB_DETACHED)) {
+//                Toast toast = Toast.makeText(context, usb_detached_text, duration);
+//                toast.show();
+//            }
+//        }
+//    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 
-        mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        mListView = (ListView) findViewById(R.id.device_list);
+//        setFilter();
 
-        mAdapter = new ArrayAdapter<UsbSerialPort>(this,
-                android.R.layout.simple_expandable_list_item_2, mEntries) {
-            @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
-                final TwoLineListItem row;
-                if (convertView == null){
-                    final LayoutInflater inflater =
-                            (LayoutInflater) getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                    row = (TwoLineListItem) inflater.inflate(android.R.layout.simple_list_item_2, null);
+        mLogView = (TextView) findViewById(R.id.isplog_textview);
+        mScrollView = (ScrollView) findViewById(R.id.log_view);
+
+        // start/stop logging
+        ToggleButton log_toggle = (ToggleButton) findViewById(R.id.log_button);
+        log_toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    startLog();
                 } else {
-                    row = (TwoLineListItem) convertView;
+                    stopLog();
                 }
-
-                final UsbSerialPort port = mEntries.get(position);
-                final UsbSerialDriver driver = port.getDriver();
-                final UsbDevice device = driver.getDevice();
-
-                final String title = String.format("Vendor %s Product %s",
-                        HexDump.toHexString((short) device.getVendorId()),
-                        HexDump.toHexString((short) device.getProductId()));
-                row.getText1().setText(title);
-
-                final String subtitle = driver.getClass().getSimpleName();
-                row.getText2().setText(subtitle);
-
-                return row;
-            }
-
-        };
-        mListView.setAdapter(mAdapter);
-
-        mListView.setOnItemClickListener(new ListView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Log.d(TAG, "Pressed item " + position);
-                if (position >= mEntries.size()) {
-                    Log.w(TAG, "Illegal position.");
-                    return;
-                }
-
-                final UsbSerialPort port = mEntries.get(position);
-                useDevice(port);
             }
         });
 
-
+        TextView tv = (TextView) findViewById(R.id.lamba_text);
+        Typeface tf = Typeface.createFromAsset(getAssets(), "fonts/DSEG7Modern-Regular.ttf");
+        tv.setTypeface(tf);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        if (mUsbPermission) {
-            Button log_button = (Button) findViewById(R.id.start_log_button);
-            log_button.setVisibility(Button.VISIBLE);
-        }
-
-        registerReceiver(mUsbReceiver, new IntentFilter(ACTION_USB_PERMISSION));
-//        mHandler.sendEmptyMessage(MESSAGE_REFRESH);
-
-//        Toast.makeText(this, "Dashboard::onResume", Toast.LENGTH_SHORT).show();
-//        if (mIspUpdateReceiver == null) {
-//            mIspUpdateReceiver = new IspUpdateReceiver();
-//            IntentFilter intentFilter = new IntentFilter();
-//            intentFilter.addAction(ISPService.ISP_SERVICE_CONNECTED);
-//            intentFilter.addAction(ISPService.ISP_DATA_RECEIVED);
-//            registerReceiver(mIspUpdateReceiver, intentFilter);
-//        }
+    void showStatus(TextView theTextView, String theLabel, boolean theValue){
+        String msg = theLabel + ": " + (theValue ? "enabled" : "disabled") + "\n";
+        theTextView.append(msg);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-//        mHandler.removeMessages(MESSAGE_REFRESH);
-
-        Toast.makeText(this, "Dashboard::onPause", Toast.LENGTH_SHORT).show();
-//        if (mIspUpdateReceiver != null) {
-//            unregisterReceiver(mIspUpdateReceiver);
-//        }
-        if (mUsbReceiver != null) {
-            unregisterReceiver(mUsbReceiver);
-        }
-    }
-
-    public void refreshDeviceList(View view) {
-        Log.d(TAG, "Refreshing device list ...");
-
-        final List<UsbSerialDriver> drivers =
-                UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
-
-        final List<UsbSerialPort> result = new ArrayList<UsbSerialPort>();
-        for (final UsbSerialDriver driver : drivers) {
-            final List<UsbSerialPort> ports = driver.getPorts();
-            Log.d(TAG, String.format("+ %s: %s port%s",
-                    driver, Integer.valueOf(ports.size()), ports.size() == 1 ? "" : "s"));
-            result.addAll(ports);
-        }
-
-        mEntries.clear();
-        mEntries.addAll(result);
-        mAdapter.notifyDataSetChanged();
-        Log.d(TAG, "Done refreshing, " + mEntries.size() + " entries found.");
-    }
-
-    public void useDevice(UsbSerialPort port) {
-        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
-        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        registerReceiver(mUsbReceiver, filter);
-        sPort = port;
-
-        usbManager.requestPermission(port.getDriver().getDevice(), mPermissionIntent);
-    }
-
-    public void startLogger(View view) {
-        Log.d(TAG, "Starting ISPLogger...");
+        stopIoManager();
         if (sPort != null) {
-            ISPLogger.launch(this, sPort);
-        } else {
-            Toast.makeText(this, "No device selected", Toast.LENGTH_SHORT).show();
+            try {
+                sPort.close();
+            } catch (IOException e) {
+                // Ignore.
+            }
+            sPort = null;
         }
+        finish();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "Resumed, port=" + sPort);
+        if (sPort == null) {
+            mLogView.append("No serial device\n");
+        } else {
+            final UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+
+            UsbDeviceConnection connection = usbManager.openDevice(sPort.getDriver().getDevice());
+            if (connection == null) {
+                mLogView.append("Opening device failed\n");
+                return;
+            }
+
+            try {
+                mLogView.append("opening connection\n");
+                sPort.open(connection);
+                mLogView.append("setting parameters\n");
+                sPort.setParameters(19200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+
+                showStatus(mLogView, "CD  - Carrier Detect", sPort.getCD());
+                showStatus(mLogView, "CTS - Clear To Send", sPort.getCTS());
+                showStatus(mLogView, "DSR - Data Set Ready", sPort.getDSR());
+                showStatus(mLogView, "DTR - Data Terminal Ready", sPort.getDTR());
+                showStatus(mLogView, "DSR - Data Set Ready", sPort.getDSR());
+                showStatus(mLogView, "RI  - Ring Indicator", sPort.getRI());
+                showStatus(mLogView, "RTS - Request To Send", sPort.getRTS());
+            } catch (IOException e) {
+                Log.e(TAG, "Error setting up device: " + e.getMessage(), e);
+                mLogView.append("Error opening device: " + e.getMessage() + "\n");
+                try {
+                    sPort.close();
+                } catch (IOException e2) {
+                    // Ignore.
+                }
+                sPort = null;
+                return;
+            } catch (Exception e) {
+                mLogView.append("received unhandled exception\n");
+            }
+            mLogView.append("Serial device: " + sPort.getClass().getSimpleName() + "\n");
+        }
+        onDeviceStateChange();
+    }
+
+    public void startLog() {
+        Toast.makeText(this, "startLog", Toast.LENGTH_SHORT).show();
+        // TODO: launch ISP logger service
+    }
+
+    public void stopLog() {
+        Toast.makeText(this, "stopLog()", Toast.LENGTH_SHORT).show();
+    }
+
+    private void stopIoManager() {
+        if (mSerialIoManager != null) {
+            Log.i(TAG, "Stopping io manager ..");
+            mLogView.append("stopping IO manager...\n");
+            mScrollView.smoothScrollTo(0, mLogView.getBottom());
+            mSerialIoManager.stop();
+            mSerialIoManager = null;
+        }
+    }
+
+    private void startIoManager() {
+        if (sPort != null) {
+            Log.i(TAG, "Starting io manager ..");
+            mLogView.append("starting IO manager...\n");
+            mScrollView.smoothScrollTo(0, mLogView.getBottom());
+            mSerialIoManager = new SerialInputOutputManager(sPort, mListener);
+            mExecutor.submit(mSerialIoManager);
+        }
+    }
+
+    private void onDeviceStateChange() {
+        stopIoManager();
+        startIoManager();
+    }
+
+    private void updateReceivedData(byte[] data) {
+        final String message = "Read " + data.length + " bytes: \n"
+                + HexDump.dumpHexString(data) + "\n\n";
+        mLogView.append(message);
+        mScrollView.smoothScrollTo(0, mLogView.getBottom());
+    }
+
+    static void launch(Context context, UsbSerialPort port) {
+        sPort = port;
+        final Intent intent = new Intent(context, Dashboard.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NO_HISTORY);
+        context.startActivity(intent);
     }
 }

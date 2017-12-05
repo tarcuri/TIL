@@ -11,7 +11,7 @@
         android:theme="@style/AppTheme">
         <service android:name=".ISPService" />
 
-        <activity android:name=".Dashboard">
+        <activity android:name=".TILActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
@@ -21,7 +21,7 @@
             <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
-        <activity android:name=".ISPLogger">
+        <activity android:name=".Dashboard">
         </activity>
     </application>
 
