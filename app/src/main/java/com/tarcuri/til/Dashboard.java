@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Typeface;
 import android.hardware.usb.UsbDeviceConnection;
@@ -65,6 +66,8 @@ public class Dashboard extends AppCompatActivity {
         }
     }
 
+    private IspUpdateReceiver mIspUpdateReceiver = new IspUpdateReceiver();
+
     private SerialInputOutputManager mSerialIoManager;
 
     private final SerialInputOutputManager.Listener mListener =
@@ -89,13 +92,12 @@ public class Dashboard extends AppCompatActivity {
                 }
             };
 
-//    private void setFilter() {
-//        IntentFilter filter = new IntentFilter();
-//        filter.addAction(ACTION_USB_PERMISSION);
-//        filter.addAction(ACTION_USB_DETACHED);
-//        filter.addAction(ACTION_USB_ATTACHED);
-//        registerReceiver(mUsbReceiver, filter);
-//    }
+    private void setFilter() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ISPService.ISP_SERVICE_CONNECTED);
+        filter.addAction(ISPService.ISP_LC1_RECEIVED);
+        registerReceiver(mIspUpdateReceiver, filter);
+    }
 
 //    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
 //        @Override
@@ -132,7 +134,7 @@ public class Dashboard extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 
-//        setFilter();
+        setFilter();
 
         mLogView = (TextView) findViewById(R.id.isplog_textview);
         mScrollView = (ScrollView) findViewById(R.id.log_view);
