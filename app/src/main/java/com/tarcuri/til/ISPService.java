@@ -3,6 +3,7 @@ package com.tarcuri.til;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -11,6 +12,9 @@ import android.widget.Toast;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -24,10 +28,12 @@ public class ISPService extends Service {
     static final String ISP_SERVICE_CONNECTED = "com.tarcuri.til.ISP_SERVICE_CONNECTED";
     static final String ISP_DATA_RECEIVED = "com.tarcuri.til.ISP_DATA_RECEIVED";
 
-    private static final int IPS_BAUD_RATE = 19200;
+    // bits 15, 13, 9, and 7 are always 1 in header
+    private static int ISP_HEADER_MASK = 0xa280;
+    private static short ISP_HIGH_BIT_LENGTH_MASK = 0x100;
+    private static short ISP_LOW_LENGTH_MASK = 0x7f;
 
     private static UsbSerialPort sPort = null;
-    private SerialInputOutputManager mSerialIoManager;
 
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
 
@@ -35,39 +41,92 @@ public class ISPService extends Service {
 
     public static boolean isConnected = false;
 
-    private final SerialInputOutputManager.Listener mListener =
-            new SerialInputOutputManager.Listener() {
+    private class ReadISP extends AsyncTask<UsbSerialPort, Long, Long> {
+        protected Long doInBackground(UsbSerialPort... ports) {
+            int count = ports.length;
+            long bytes_read = 0;
+            for (UsbSerialPort port : ports) {
+                boolean error = false;
+                byte[] pbuf = new byte[32];
+                byte[] bbuf = new byte[32];
 
-                @Override
-                public void onRunError(Exception e) {
-                    Log.d(TAG, "Runner stopped.");
-                }
+                int packet_bytes = 0;
 
-                @Override
-                public void onNewData(final byte[] data) {
-                    sendBroadcast(new Intent(ISPService.ISP_DATA_RECEIVED));
-//                    ISPService.this.runOnUiThread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            SerialConsoleActivity.this.updateReceivedData(data);
-//                        }
-//                    });
+                // TODO: signal task to stop
+                while (!error) try {
+                    int br = port.read(bbuf, 20);
+                    bytes_read += br;
+
+                    System.arraycopy(bbuf, 0, pbuf, packet_bytes, br);
+                    packet_bytes += br;
+
+                    // all packets are made of words
+                    if (packet_bytes > 2 && packet_bytes % 2 == 0) {
+                        // should have at least a header
+                        short[] words = new short[pbuf.length / 2];
+                        ByteBuffer.wrap(pbuf).order(ByteOrder.BIG_ENDIAN).asShortBuffer().get(words);
+
+                        byte packet_words_total = 0;
+                        byte packet_words = 0;
+                        short[] packet = null;
+                        for (short word : words) {
+                            if ((word & ISP_HEADER_MASK) == ISP_HEADER_MASK) {
+                                // found a header, get the packet length (in words)
+                                packet_words_total = (byte) (word & ISP_LOW_LENGTH_MASK);
+                                if ((word & ISP_HIGH_BIT_LENGTH_MASK) != 0) {
+                                    packet_words_total |= (1 << 7);
+                                    packet = new short[packet_words_total + 1];
+                                    packet[0] = word;
+                                }
+                            } else if (packet != null) {
+                                if (packet_words < packet_words_total) {
+                                    packet[++packet_words] = word;
+                                }
+                            } else {
+                                Log.i(TAG, "no valid packet");
+                            }
+
+                            if (packet_words == packet_words_total) {
+                                // complete packet
+
+                                packet = null;
+                            }
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            };
+            }
+            return bytes_read;
+        }
+
+        protected void onProgressUpdate(Integer... progress) {
+
+        }
+
+        protected void onPostExecute(Integer result) {
+
+        }
+
+    }
 
     @Override
     public void onCreate() {
+        Log.i(TAG, "onCreate");
         // The service is being created
+
         sInstance = this;
-        Toast.makeText(this, "onCreate", Toast.LENGTH_SHORT).show();
-        isConnected = true;
-        sendBroadcast(new Intent(ISPService.ISP_SERVICE_CONNECTED));
+
+//        Toast.makeText(this, "onCreate", Toast.LENGTH_SHORT).show();
+//        isConnected = true;
+//        sendBroadcast(new Intent(ISPService.ISP_SERVICE_CONNECTED));
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i(TAG, "onStartCommand");
         // The service is starting, due to a call to startService()
-        Toast.makeText(this, "onStartCommand", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "onStartCommand", Toast.LENGTH_SHORT).show();
         return START_STICKY;
     }
 
@@ -86,56 +145,6 @@ public class ISPService extends Service {
     static Context getInstance() {
         return sInstance;
     }
-
-    private void stopIoManager() {
-        if (mSerialIoManager != null) {
-            Log.i(TAG, "Stopping io manager ..");
-            mSerialIoManager.stop();
-            mSerialIoManager = null;
-        }
-    }
-
-    private void startIoManager() {
-        if (sPort != null) {
-            Log.i(TAG, "Starting io manager ..");
-            mSerialIoManager = new SerialInputOutputManager(sPort, mListener);
-            mExecutor.submit(mSerialIoManager);
-        }
-    }
-
-//    private void findSerialPortDevice() {
-//        // This snippet will try to open the first encountered usb device connected, excluding usb root hubs
-//        HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();
-//        if (!usbDevices.isEmpty()) {
-//            boolean keep = true;
-//            for (Map.Entry<String, UsbDevice> entry : usbDevices.entrySet()) {
-//                usbDevice = entry.getValue();
-//                int deviceVID = usbDevice.getVendorId();
-//                int devicePID = usbDevice.getProductId();
-//
-//                if (deviceVID != 0x1d6b && (devicePID != 0x0001 && devicePID != 0x0002 && devicePID != 0x0003)) {
-//                    // There is a device connected to our Android device. Try to open it as a Serial Port.
-//                    requestUserPermission();
-//                    keep = false;
-//                } else {
-//                    usbDeviceConnection = null;
-//                    usbDevice = null;
-//                }
-//
-//                if (!keep)
-//                    break;
-//            }
-//            if (!keep) {
-//                // There is no USB devices connected (but usb host were listed). Send an intent to MainActivity.
-////                Intent intent = new Intent(ACTION_NO_USB);
-////                sendBroadcast(intent);
-//            }
-//        } else {
-//            // There is no USB devices connected. Send an intent to MainActivity
-////            Intent intent = new Intent(ACTION_NO_USB);
-////            sendBroadcast(intent);
-//        }
-//    }
 
     static void connectISPService(Context context, UsbSerialPort port) {
         sPort = port;
