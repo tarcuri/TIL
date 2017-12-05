@@ -41,11 +41,17 @@ import static java.lang.Thread.sleep;
 public class Dashboard extends AppCompatActivity {
     private final String TAG = Dashboard.class.getSimpleName();
 
+    private static final String ACTION_USB_ATTACHED = "android.hardware.usb.action.USB_DEVICE_ATTACHED";
+    private static final String ACTION_USB_DETACHED = "android.hardware.usb.action.USB_DEVICE_DETACHED";
+    private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
+
     private UsbManager mUsbManager;
     private ListView mListView;
 
     private static final int MESSAGE_REFRESH = 101;
     private static final long REFRESH_TIMEOUT_MILLIS = 5000;
+
+
 
 //    private final Handler mHandler = new Handler() {
 //        @Override
@@ -78,6 +84,36 @@ public class Dashboard extends AppCompatActivity {
 //    }
 
 //    private IspUpdateReceiver mIspUpdateReceiver;
+
+    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            CharSequence usb_perms_text = "USB permissions granted";
+            CharSequence usb_noperms_text = "USB permissions NOT granted";
+            CharSequence usb_attached_text = "USB attached";
+            CharSequence usb_detached_text = "USB detatched";
+            int duration = Toast.LENGTH_SHORT;
+
+            if (intent.getAction().equals(ACTION_USB_PERMISSION)) {
+                boolean granted = intent.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
+                if (granted) {
+                    // user granted permission
+                    Toast toast = Toast.makeText(context, usb_perms_text, duration);
+                    toast.show();
+                } else {
+                    // user did not grant permissions
+                    Toast toast = Toast.makeText(context, usb_noperms_text, duration);
+                    toast.show();
+                }
+            } else if (intent.getAction().equals(ACTION_USB_ATTACHED)) {
+                Toast toast = Toast.makeText(context, usb_attached_text, duration);
+                toast.show();
+            } else if (intent.getAction().equals(ACTION_USB_DETACHED)) {
+                Toast toast = Toast.makeText(context, usb_detached_text, duration);
+                toast.show();
+            }
+        }
+    };
 
     private List<UsbSerialPort> mEntries = new ArrayList<UsbSerialPort>();
     private ArrayAdapter<UsbSerialPort> mAdapter;
