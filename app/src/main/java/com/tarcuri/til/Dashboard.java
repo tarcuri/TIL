@@ -55,6 +55,10 @@ public class Dashboard extends AppCompatActivity {
                 // Do stuff - maybe update my view based on the changed DB contents
                 Log.i(TAG, "ISP_SERVICE_CONNECTED");
                 Toast.makeText(context, "ISP Connection received", Toast.LENGTH_SHORT).show();
+            } else if (intent.getAction().equals(ISPService.ISP_DATA_RECEIVED)) {
+                Log.i(TAG, "ISP_DATA_RECEIVED");
+                byte[] chunk = mISPService.getChunk();
+                updateReceivedData(chunk);
             } else if (intent.getAction().equals(ISPService.ISP_LC1_RECEIVED)) {
                 Log.i(TAG, "ISP_LC1_RECEIVED");
                 LC1Packet packet = mISPService.getPacket();

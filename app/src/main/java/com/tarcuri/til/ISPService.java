@@ -7,18 +7,14 @@ import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.IBinder;
-import android.support.annotation.Nullable;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.hoho.android.usbserial.driver.UsbSerialPort;
-import com.hoho.android.usbserial.util.SerialInputOutputManager;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -44,11 +40,17 @@ public class ISPService extends Service {
         }
     }
 
-    private Queue<LC1Packet> mLC1Packets;
+    private Queue<LC1Packet> mPacketQueue = new LinkedList<>();
+
+    private Queue<byte[]> mChunkQueue = new LinkedList<>();
 
     /** method for clients */
     public LC1Packet getPacket() {
-        return mLC1Packets.remove();
+        return mPacketQueue.remove();
+    }
+
+    public byte[] getChunk() {
+        return mChunkQueue.remove();
     }
 
     public static final String ISP_SERVICE_CONNECTED = "com.tarcuri.til.ISP_SERVICE_CONNECTED";
@@ -67,16 +69,16 @@ public class ISPService extends Service {
     public static boolean isConnected = false;
 
     private class ReadISP extends AsyncTask<UsbSerialPort, Long, Long> {
+        private ByteBuffer mByteBuffer = ByteBuffer.allocate(1024);
+
         protected Long doInBackground(UsbSerialPort... ports) {
             int count = ports.length;
             long bytes_read = 0;
             for (UsbSerialPort port : ports) {
                 boolean error = false;
-                byte[] pbuf = new byte[32];
                 byte[] bbuf = new byte[32];
 
-
-                int packet_bytes = 0;
+                mByteBuffer.clear();
 
                 // TODO: signal task to stop
                 while (!error) try {
@@ -89,49 +91,74 @@ public class ISPService extends Service {
                         continue;
                     }
 
-                    System.arraycopy(bbuf, 0, pbuf, packet_bytes, br);
-                    packet_bytes += br;
+                    // chunk access for debug
+                    mChunkQueue.add(bbuf);
+                    sendBroadcast(new Intent(ISPService.ISP_DATA_RECEIVED));
 
-                    // all packets are made of words
-                    int num_words = packet_bytes / 2;
-                    if (num_words >= 1) {
-                        // should have at least a header
-                        short[] words = new short[num_words];
-                        ByteBuffer.wrap(pbuf).order(ByteOrder.BIG_ENDIAN).asShortBuffer().get(words);
+                    mByteBuffer.put(bbuf);
 
-                        short[] packet = null;
-                        byte packet_words_total = 0;
-                        byte packet_words = 0;
-                        for (short word : words) {
-                            if ((word & ISP_HEADER_MASK) == ISP_HEADER_MASK) {
-                                // found a header, get the packet length (in words)
-                                packet_words_total = (byte) (word & ISP_LOW_LENGTH_MASK);
-                                if ((word & ISP_HIGH_BIT_LENGTH_MASK) != 0) {
-                                    packet_words_total |= (1 << 7);
-                                }
-                                packet = new short[packet_words_total + 1];
-                                packet[0] = word;
-                            } else if (packet != null) {
-                                if (packet_words < packet_words_total) {
-                                    packet[++packet_words] = word;
-                                }
-                            } else {
-                                Log.i(TAG, "no valid packet");
+                    // mark this location to continue reading
+                    mByteBuffer.mark();
+
+                    // now flip for reading
+                    mByteBuffer.flip();
+
+                    // convert to short buffer to check for packets
+                    int limit = mByteBuffer.limit(); // num bytes in buffer
+                    int num_words = limit / 2;
+                    short[] words = new short[num_words];
+                    mByteBuffer.order(ByteOrder.BIG_ENDIAN).asShortBuffer().get(words);
+
+                    // check for valid packets
+                    int packet_words_total = 0;
+                    int packet_words_read = 0;
+                    short[] packet = null;
+                    for (short word : words) {
+                        if ((word & ISP_HEADER_MASK) == ISP_HEADER_MASK) {
+                            // found a header, get the packet length (in words)
+                            packet_words_total = (byte) (word & ISP_LOW_LENGTH_MASK);
+                            if ((word & ISP_HIGH_BIT_LENGTH_MASK) != 0) {
+                                packet_words_total |= (1 << 7);
                             }
-
-                            if (packet_words == packet_words_total) {
-                                if (packet_words == 3) {
-                                    Log.i(TAG, "found packet (3 bytes) - LC1");
-                                    LC1Packet lc1 = new LC1Packet(packet);
-                                    mLC1Packets.add(lc1);
-                                    sendBroadcast(new Intent(ISPService.ISP_LC1_RECEIVED));
-                                }
-                                // complete packet
-                                packet = null;
-                                packet_words = 0;
-                                packet_bytes = 0;
+                            packet = new short[packet_words_total + 1];
+                            packet[0] = word;
+                        } else if (packet != null) {
+                            if (packet_words_read < packet_words_total) {
+                                packet[++packet_words_read] = word;
                             }
+                        } else {
+                            Log.i(TAG, "discarding word without preceding header");
+
+                            // consume this word
+                            mByteBuffer.order(ByteOrder.BIG_ENDIAN).getShort();
                         }
+                    }
+
+                    // consume data for valid packets
+                    if (packet_words_read == packet_words_total) {
+                        // consume words for this packet
+                        for (int i = 0; i < packet_words_read; i++) {
+                            mByteBuffer.order(ByteOrder.BIG_ENDIAN).getShort();
+                        }
+
+                        Log.d(TAG, "received LC1 packet");
+                        mPacketQueue.add(new LC1Packet(packet));
+                        sendBroadcast(new Intent(ISPService.ISP_LC1_RECEIVED));
+                    }
+
+                    // did we read up to the mark?
+                    if (mByteBuffer.hasRemaining()) {
+                        // no we didn't reset the mark to here
+                        mByteBuffer.mark();
+                        // and then set limit back to capacity
+                        mByteBuffer.limit(mByteBuffer.capacity());
+                    }
+
+                    // now reset and check for remaining data
+                    mByteBuffer.reset();
+                    if (!mByteBuffer.hasRemaining()) {
+                        // if no remaining unconsumed bytes then clear the buffer
+                        mByteBuffer.clear();
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
