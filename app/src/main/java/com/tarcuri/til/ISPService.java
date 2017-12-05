@@ -64,18 +64,14 @@ public class ISPService extends Service {
 
     private static UsbSerialPort sPort = null;
 
-    private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
-
-    public static boolean isConnected = false;
-
     private class ReadISP extends AsyncTask<UsbSerialPort, Long, Long> {
         private ByteBuffer mByteBuffer = ByteBuffer.allocate(1024);
 
         protected Long doInBackground(UsbSerialPort... ports) {
-            int count = ports.length;
             long bytes_read = 0;
             for (UsbSerialPort port : ports) {
                 boolean error = false;
+                int read_mark = 0;
                 byte[] bbuf = new byte[32];
 
                 mByteBuffer.clear();
@@ -101,10 +97,11 @@ public class ISPService extends Service {
                     mByteBuffer.mark();
 
                     // now flip for reading
-                    mByteBuffer.flip();
+                    mByteBuffer.limit(mByteBuffer.position());
+                    mByteBuffer.position(read_mark);
 
                     // convert to short buffer to check for packets
-                    int limit = mByteBuffer.limit(); // num bytes in buffer
+                    int limit = mByteBuffer.limit() - mByteBuffer.position(); // num bytes in buffer
                     int num_words = limit / 2;
                     short[] words = new short[num_words];
                     mByteBuffer.order(ByteOrder.BIG_ENDIAN).asShortBuffer().get(words);
@@ -146,11 +143,11 @@ public class ISPService extends Service {
                         sendBroadcast(new Intent(ISPService.ISP_LC1_RECEIVED));
                     }
 
+                    read_mark = mByteBuffer.position();
+
                     // did we read up to the mark?
                     if (mByteBuffer.hasRemaining()) {
-                        // no we didn't reset the mark to here
-                        mByteBuffer.mark();
-                        // and then set limit back to capacity
+                        // more to read to reset limit to capacity
                         mByteBuffer.limit(mByteBuffer.capacity());
                     }
 
@@ -158,7 +155,9 @@ public class ISPService extends Service {
                     mByteBuffer.reset();
                     if (!mByteBuffer.hasRemaining()) {
                         // if no remaining unconsumed bytes then clear the buffer
+                        // NOTE: this will potentially discard fragments of a packet
                         mByteBuffer.clear();
+                        read_mark = mByteBuffer.position();
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
