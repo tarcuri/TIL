@@ -145,10 +145,11 @@ public class ISPService extends Service {
     public void onCreate() {
         Log.i(TAG, "onCreate");
         // The service is being created
-
+        sendBroadcast(new Intent(ISPService.ISP_SERVICE_CONNECTED));
+        new ReadISP().execute(sPort);
 //        Toast.makeText(this, "onCreate", Toast.LENGTH_SHORT).show();
 //        isConnected = true;
-//        sendBroadcast(new Intent(ISPService.ISP_SERVICE_CONNECTED));
+//
     }
 
     @Override
@@ -156,7 +157,7 @@ public class ISPService extends Service {
         Log.i(TAG, "onStartCommand");
         // The service is starting, due to a call to startService()
 //        Toast.makeText(this, "onStartCommand", Toast.LENGTH_SHORT).show();
-        new ReadISP().execute(sPort);
+
         return START_STICKY;
     }
 

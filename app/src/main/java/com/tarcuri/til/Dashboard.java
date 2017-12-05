@@ -52,11 +52,15 @@ public class Dashboard extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(ISPService.ISP_SERVICE_CONNECTED)) {
                 // Do stuff - maybe update my view based on the changed DB contents
+                Log.i(TAG, "ISP_SERVICE_CONNECTED");
                 Toast.makeText(context, "ISP Connection received", Toast.LENGTH_SHORT).show();
             } else if (intent.getAction().equals(ISPService.ISP_LC1_RECEIVED)) {
+                Log.i(TAG, "ISP_LC1_RECEIVED");
                 LC1Packet packet = mISPService.getPacket();
                 TextView tv = (TextView) findViewById(R.id.lamba_text);
                 tv.setText("0.0");
+                byte[] buf = packet.getPacketBytes();
+                updateReceivedData(buf);
             }
         }
     }
