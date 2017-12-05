@@ -51,10 +51,12 @@ public class Dashboard extends AppCompatActivity {
                 byte[] chunk = mISPService.getChunk();
                 updateReceivedData(chunk);
             } else if (intent.getAction().equals(ISPService.ISP_LC1_RECEIVED)) {
-                Log.i(TAG, "ISP_LC1_RECEIVED");
                 LC1Packet packet = mISPService.getPacket();
-                TextView tv = (TextView) findViewById(R.id.lamba_text);
-                tv.setText(String.valueOf(packet.getAFR()));
+                if (packet != null) {
+                    Log.i(TAG, "ISP_LC1_RECEIVED: AFR = " + String.valueOf(packet.getAFR()));
+                    TextView tv = (TextView) findViewById(R.id.lamba_text);
+                    tv.setText(String.valueOf(packet.getAFR()));
+                }
 //                byte[] buf = packet.getPacketBytes();
 //                updateReceivedData(buf);
             }
