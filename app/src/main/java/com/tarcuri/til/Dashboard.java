@@ -31,18 +31,10 @@ import java.util.concurrent.Executors;
 public class Dashboard extends AppCompatActivity {
     private final String TAG = Dashboard.class.getSimpleName();
 
-    private static final String ACTION_USB_ATTACHED = "android.hardware.usb.action.USB_DEVICE_ATTACHED";
-    private static final String ACTION_USB_DETACHED = "android.hardware.usb.action.USB_DEVICE_DETACHED";
-    private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
-
-    private static PendingIntent mPermissionIntent = null;
-
     private TextView mLogView;
     private ScrollView mScrollView;
 
     private static UsbSerialPort sPort = null;
-
-    private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
 
     // need to bind to ISP service
     private boolean mBound;
@@ -52,7 +44,6 @@ public class Dashboard extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(ISPService.ISP_SERVICE_CONNECTED)) {
-                // Do stuff - maybe update my view based on the changed DB contents
                 Log.i(TAG, "ISP_SERVICE_CONNECTED");
                 Toast.makeText(context, "ISP Connection received", Toast.LENGTH_SHORT).show();
             } else if (intent.getAction().equals(ISPService.ISP_DATA_RECEIVED)) {
@@ -72,66 +63,13 @@ public class Dashboard extends AppCompatActivity {
 
     private IspUpdateReceiver mIspUpdateReceiver = new IspUpdateReceiver();
 
-    private SerialInputOutputManager mSerialIoManager;
-
-    private final SerialInputOutputManager.Listener mListener =
-            new SerialInputOutputManager.Listener() {
-
-                @Override
-                public void onRunError(Exception e) {
-                    Log.d(TAG, "Runner stopped.");
-                    mLogView.append("RUNNER STOPPED\n");
-                }
-
-                @Override
-                public void onNewData(final byte[] data) {
-                    mLogView.append("onNewData\n");
-                    Dashboard.this.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mLogView.append("receieved data\n");
-                            Dashboard.this.updateReceivedData(data);
-                        }
-                    });
-                }
-            };
-
     private void setFilter() {
         IntentFilter filter = new IntentFilter();
         filter.addAction(ISPService.ISP_SERVICE_CONNECTED);
+        filter.addAction(ISPService.ISP_DATA_RECEIVED);
         filter.addAction(ISPService.ISP_LC1_RECEIVED);
         registerReceiver(mIspUpdateReceiver, filter);
     }
-
-//    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
-//        @Override
-//        public void onReceive(Context context, Intent intent) {
-//            CharSequence usb_perms_text = "USB permissions granted";
-//            CharSequence usb_noperms_text = "USB permissions NOT granted";
-//            CharSequence usb_attached_text = "USB attached";
-//            CharSequence usb_detached_text = "USB detatched";
-//            int duration = Toast.LENGTH_SHORT;
-//
-//            if (intent.getAction().equals(ACTION_USB_PERMISSION)) {
-//                boolean granted = intent.getExtras().getBoolean(UsbManager.EXTRA_PERMISSION_GRANTED);
-//                if (granted) {
-//                    // user granted permission
-//                    Toast toast = Toast.makeText(context, usb_perms_text, duration);
-//                    toast.show();
-//                } else {
-//                    // user did not grant permissions
-//                    Toast toast = Toast.makeText(context, usb_noperms_text, duration);
-//                    toast.show();
-//                }
-//            } else if (intent.getAction().equals(ACTION_USB_ATTACHED)) {
-//                Toast toast = Toast.makeText(context, usb_attached_text, duration);
-//                toast.show();
-//            } else if (intent.getAction().equals(ACTION_USB_DETACHED)) {
-//                Toast toast = Toast.makeText(context, usb_detached_text, duration);
-//                toast.show();
-//            }
-//        }
-//    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -168,7 +106,6 @@ public class Dashboard extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        stopIoManager();
         if (sPort != null) {
             try {
                 sPort.close();
@@ -235,31 +172,6 @@ public class Dashboard extends AppCompatActivity {
 
     public void stopLog() {
         Toast.makeText(this, "stopLog()", Toast.LENGTH_SHORT).show();
-    }
-
-    private void stopIoManager() {
-        if (mSerialIoManager != null) {
-            Log.i(TAG, "Stopping io manager ..");
-            mLogView.append("stopping IO manager...\n");
-            mScrollView.smoothScrollTo(0, mLogView.getBottom());
-            mSerialIoManager.stop();
-            mSerialIoManager = null;
-        }
-    }
-
-    private void startIoManager() {
-        if (sPort != null) {
-            Log.i(TAG, "Starting io manager ..");
-            mLogView.append("starting IO manager...\n");
-            mScrollView.smoothScrollTo(0, mLogView.getBottom());
-            mSerialIoManager = new SerialInputOutputManager(sPort, mListener);
-            mExecutor.submit(mSerialIoManager);
-        }
-    }
-
-    private void onDeviceStateChange() {
-        stopIoManager();
-        startIoManager();
     }
 
     private void updateReceivedData(byte[] data) {
