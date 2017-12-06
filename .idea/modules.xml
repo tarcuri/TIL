@@ -3,11 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/TIL.iml" filepath="$PROJECT_DIR$/TIL.iml" />
-      <module fileurl="file://C:\Users\Tommy\StudioProjects\TIL\TIL.iml" filepath="C:\Users\Tommy\StudioProjects\TIL\TIL.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://C:\Users\Tommy\StudioProjects\TIL\app\app.iml" filepath="C:\Users\Tommy\StudioProjects\TIL\app\app.iml" />
       <module fileurl="file://$PROJECT_DIR$/usbSerialForAndroid/usbSerialForAndroid.iml" filepath="$PROJECT_DIR$/usbSerialForAndroid/usbSerialForAndroid.iml" />
-      <module fileurl="file://C:\Users\Tommy\StudioProjects\TIL\usbSerialForAndroid\usbSerialForAndroid.iml" filepath="C:\Users\Tommy\StudioProjects\TIL\usbSerialForAndroid\usbSerialForAndroid.iml" />
     </modules>
   </component>
 </project>

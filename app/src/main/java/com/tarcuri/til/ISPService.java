@@ -154,12 +154,14 @@ public class ISPService extends Service {
                         }
                     }
 
-                    if (mByteBuffer.limit() - mByteBuffer.position() == 1) {
-                        // only 1 byte left, clear and put on new buffer
-                        Log.d(TAG, "1 byte left in ByteBuffer - prepending to new buffer after clear");
-                        byte b = mByteBuffer.get();
+                    // clear buffer, but put any remaining bytes onto new buffer
+                    int rem = mByteBuffer.remaining();
+                    if (rem > 0) {
+                        byte[] rem_bytes = new byte[rem];
+                        mByteBuffer.get(rem_bytes, 0, rem);
                         mByteBuffer.clear();
-                        mByteBuffer.put(b);
+                        mByteBuffer.put(rem_bytes);
+                        Log.d(TAG, "prepended " + rem + " remaining bytes to next buffer");
                     } else {
                         mByteBuffer.clear();
                     }
