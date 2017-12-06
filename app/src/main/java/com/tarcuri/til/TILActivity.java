@@ -193,7 +193,7 @@ public class TILActivity extends AppCompatActivity {
         super.onPause();
 //        mHandler.removeMessages(MESSAGE_REFRESH);
 
-        Toast.makeText(this, "TILActivity::onPause", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "TILActivity::onPause", Toast.LENGTH_SHORT).show();
 //        if (mIspUpdateReceiver != null) {
 //            unregisterReceiver(mIspUpdateReceiver);
 //        }

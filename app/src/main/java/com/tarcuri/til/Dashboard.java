@@ -45,7 +45,6 @@ public class Dashboard extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(ISPService.ISP_SERVICE_CONNECTED)) {
                 Log.i(TAG, "ISP_SERVICE_CONNECTED");
-                Toast.makeText(context, "ISP Connection received", Toast.LENGTH_SHORT).show();
             } else if (intent.getAction().equals(ISPService.ISP_DATA_RECEIVED)) {
                 Log.i(TAG, "ISP_DATA_RECEIVED");
                 byte[] chunk = mISPService.getChunk();
@@ -168,12 +167,12 @@ public class Dashboard extends AppCompatActivity {
     }
 
     public void startLog() {
-        Toast.makeText(this, "startLog", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "startLog", Toast.LENGTH_SHORT).show();
         // TODO: launch ISP logger service
     }
 
     public void stopLog() {
-        Toast.makeText(this, "stopLog()", Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, "stopLog()", Toast.LENGTH_SHORT).show();
     }
 
     private void updateReceivedData(byte[] data) {
