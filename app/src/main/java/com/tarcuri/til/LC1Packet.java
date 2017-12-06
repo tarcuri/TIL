@@ -1,5 +1,7 @@
 package com.tarcuri.til;
 
+import android.util.Log;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 

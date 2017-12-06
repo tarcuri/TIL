@@ -54,7 +54,12 @@ public class Dashboard extends AppCompatActivity {
                 LC1Packet packet = mISPService.getPacket();
                 if (packet != null) {
                     float afr = packet.getAFR();
+                    short L = packet.getLambdaWord();
+                    byte m = packet.getMultiplier();
+                    String byte_str = HexDump.dumpHexString(packet.getPacketBytes());
                     String afr_str = String.valueOf(afr);
+                    Log.d(TAG, byte_str);
+                    Log.d(TAG, "AFR = (" + L + " 500 ) * " + m + " / 10000 = " + afr_str);
                     mLogView.append("ISP_LC1_RECEIVED: AFR = " + afr_str + "\n");
                     Log.i(TAG, "ISP_LC1_RECEIVED: AFR = " + afr_str);
                     mAFRView.setText(afr_str);
