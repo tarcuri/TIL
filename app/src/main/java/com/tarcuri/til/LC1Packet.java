@@ -59,6 +59,6 @@ public class LC1Packet {
         short L = getLambdaWord();
         byte multi = getMultiplier();
 
-        return (L + 500) * multi / 10000;
+        return ((L + 500) * multi) / 10000;
     }
 }

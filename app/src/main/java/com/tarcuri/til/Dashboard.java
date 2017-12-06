@@ -52,12 +52,15 @@ public class Dashboard extends AppCompatActivity {
             } else if (intent.getAction().equals(ISPService.ISP_LC1_RECEIVED)) {
                 LC1Packet packet = mISPService.getPacket();
                 if (packet != null) {
-                    Log.i(TAG, "ISP_LC1_RECEIVED: AFR = " + String.valueOf(packet.getAFR()));
+                    float afr = packet.getAFR();
+                    String afr_str = String.valueOf(afr);
+                    mLogView.append("ISP_LC1_RECEIVED: AFR = " + afr_str + "\n");
+                    Log.i(TAG, "ISP_LC1_RECEIVED: AFR = " + afr_str);
                     TextView tv = (TextView) findViewById(R.id.lamba_text);
-                    tv.setText(String.valueOf(packet.getAFR()));
+                    tv.setText(afr_str);
+                } else {
+                    Log.d(TAG, "ISP_LC1_RECEIVED: null packet!\n");
                 }
-//                byte[] buf = packet.getPacketBytes();
-//                updateReceivedData(buf);
             }
         }
     }
