@@ -61,6 +61,8 @@ public class LC1Packet {
         short L = getLambdaWord();
         byte multi = getMultiplier();
 
-        return ((L + 500) * multi) / 10000;
+        float afr = (float) ((L + 500) * multi) / (float) 10000.0;
+
+        return afr;
     }
 }
