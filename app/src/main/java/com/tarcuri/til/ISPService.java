@@ -122,7 +122,8 @@ public class ISPService extends Service {
                     // packet length in words, not including header
                     for (int i = 0; i < num_words; i++) {
                         short word = mByteBuffer.getShort();
-                        if ((word & ISP_HEADER_MASK) == 1) {
+                        Log.d(TAG, "word: " + Integer.toHexString(word));
+                        if ((word & ISP_HEADER_MASK) == ISP_HEADER_MASK) {
                             packet_words = (byte) (word & ISP_LOW_LENGTH_MASK);
                             if ((word & ISP_HIGH_BIT_LENGTH_MASK) != 0) {
                                 packet_words |= 1 << 7;
