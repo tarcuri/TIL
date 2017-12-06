@@ -113,6 +113,7 @@ public class ISPService extends Service {
                     if (num_words == 0) {
                         Log.d(TAG, "no words available (" + br + " bytes)");
                         // need to get more bytes, set limit to capacity
+                        mByteBuffer.reset();
                         mByteBuffer.limit(mByteBuffer.capacity());
                         continue;
                     }
