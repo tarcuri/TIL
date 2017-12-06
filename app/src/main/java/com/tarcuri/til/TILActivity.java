@@ -5,6 +5,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.support.v7.app.AppCompatActivity;
@@ -46,31 +48,6 @@ public class TILActivity extends AppCompatActivity {
     private UsbManager mUsbManager;
     private ListView mListView;
 
-    private static final int MESSAGE_REFRESH = 101;
-    private static final long REFRESH_TIMEOUT_MILLIS = 5000;
-
-
-
-//    private final Handler mHandler = new Handler() {
-//        @Override
-//        public void handleMessage(Message msg) {
-//            switch (msg.what) {
-//                case MESSAGE_REFRESH:
-//                    refreshDeviceList();
-//                    mHandler.sendEmptyMessageDelayed(MESSAGE_REFRESH, REFRESH_TIMEOUT_MILLIS);
-//                    break;
-//                default:
-//                    super.handleMessage(msg);
-//                    break;
-//            }
-//        }
-//
-//    };
-//
-
-
-//    private IspUpdateReceiver mIspUpdateReceiver;
-
     private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -88,8 +65,8 @@ public class TILActivity extends AppCompatActivity {
                     toast.show();
 
                     mUsbPermission = true;
-                    Button log_button = (Button) findViewById(R.id.start_log_button);
-                    log_button.setVisibility(Button.VISIBLE);
+                    Button connect_button = (Button) findViewById(R.id.connect_lc1_button);
+                    connect_button.getBackground().setColorFilter(null);
                 } else {
                     // user did not grant permissions
                     Toast toast = Toast.makeText(context, usb_noperms_text, duration);
@@ -163,7 +140,10 @@ public class TILActivity extends AppCompatActivity {
             }
         });
 
+        Button connect_button = (Button) findViewById(R.id.connect_lc1_button);
+        connect_button.getBackground().setColorFilter(Color.GRAY, PorterDuff.Mode.MULTIPLY);
 
+        refreshDeviceList(null);
     }
 
     @Override
@@ -171,32 +151,17 @@ public class TILActivity extends AppCompatActivity {
         super.onResume();
 
         if (mUsbPermission) {
-            Button log_button = (Button) findViewById(R.id.start_log_button);
+            Button log_button = (Button) findViewById(R.id.connect_lc1_button);
             log_button.setVisibility(Button.VISIBLE);
         }
 
         registerReceiver(mUsbReceiver, new IntentFilter(ACTION_USB_PERMISSION));
-//        mHandler.sendEmptyMessage(MESSAGE_REFRESH);
-
-//        Toast.makeText(this, "TILActivity::onResume", Toast.LENGTH_SHORT).show();
-//        if (mIspUpdateReceiver == null) {
-//            mIspUpdateReceiver = new IspUpdateReceiver();
-//            IntentFilter intentFilter = new IntentFilter();
-//            intentFilter.addAction(ISPService.ISP_SERVICE_CONNECTED);
-//            intentFilter.addAction(ISPService.ISP_DATA_RECEIVED);
-//            registerReceiver(mIspUpdateReceiver, intentFilter);
-//        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-//        mHandler.removeMessages(MESSAGE_REFRESH);
 
-//        Toast.makeText(this, "TILActivity::onPause", Toast.LENGTH_SHORT).show();
-//        if (mIspUpdateReceiver != null) {
-//            unregisterReceiver(mIspUpdateReceiver);
-//        }
         if (mUsbReceiver != null) {
             unregisterReceiver(mUsbReceiver);
         }
