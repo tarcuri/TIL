@@ -75,7 +75,6 @@ public class ISPService extends Service {
             long bytes_read = 0;
             for (UsbSerialPort port : ports) {
                 boolean error = false;
-                int read_mark = 0;
                 byte[] chunk;
                 byte[] bbuf = new byte[32];
                 short[] packet = null;
@@ -156,11 +155,14 @@ public class ISPService extends Service {
                     }
 
                     if (mByteBuffer.limit() - mByteBuffer.position() == 1) {
-                        // only 1 byte left
-                        Log.d(TAG, "1 byte left in ByteBuffer - discarding");
+                        // only 1 byte left, clear and put on new buffer
+                        Log.d(TAG, "1 byte left in ByteBuffer - prepending to new buffer after clear");
+                        byte b = mByteBuffer.get();
+                        mByteBuffer.clear();
+                        mByteBuffer.put(b);
+                    } else {
+                        mByteBuffer.clear();
                     }
-
-                    mByteBuffer.clear();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
