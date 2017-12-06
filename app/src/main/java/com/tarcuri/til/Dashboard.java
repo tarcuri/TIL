@@ -58,11 +58,16 @@ public class Dashboard extends AppCompatActivity {
                     byte m = packet.getMultiplier();
                     String byte_str = HexDump.dumpHexString(packet.getPacketBytes());
                     String afr_str = String.valueOf(afr);
+
+                    // show some debug
+                    mLogView.append("ISP_LC1_RECEIVED: AFR = (" + L + " + 500) * "
+                            + m + " / 10000 = " + afr_str + "\n");
+                    Log.i(TAG, "ISP_LC1_RECEIVED: AFR = (" + L + " + 500) * "
+                            + m + " / 10000 = " + afr_str);
                     Log.d(TAG, byte_str);
-                    Log.d(TAG, "AFR = (" + L + " 500 ) * " + m + " / 10000 = " + afr_str);
-                    mLogView.append("ISP_LC1_RECEIVED: AFR = " + afr_str + "\n");
-                    Log.i(TAG, "ISP_LC1_RECEIVED: AFR = " + afr_str);
-                    mAFRView.setText(afr_str);
+
+                    // update the gauge display
+                    mAFRView.setText(String.format("%.2f", afr));
                 } else {
                     Log.d(TAG, "ISP_LC1_RECEIVED: null packet!\n");
                 }
