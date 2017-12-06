@@ -39,6 +39,7 @@ public class Dashboard extends AppCompatActivity {
     // need to bind to ISP service
     private boolean mBound;
     private ISPService mISPService;
+    private TextView mAFRView;
 
     private class IspUpdateReceiver extends BroadcastReceiver {
         @Override
@@ -56,8 +57,7 @@ public class Dashboard extends AppCompatActivity {
                     String afr_str = String.valueOf(afr);
                     mLogView.append("ISP_LC1_RECEIVED: AFR = " + afr_str + "\n");
                     Log.i(TAG, "ISP_LC1_RECEIVED: AFR = " + afr_str);
-                    TextView tv = (TextView) findViewById(R.id.lamba_text);
-                    tv.setText(afr_str);
+                    mAFRView.setText(afr_str);
                 } else {
                     Log.d(TAG, "ISP_LC1_RECEIVED: null packet!\n");
                 }
@@ -100,6 +100,8 @@ public class Dashboard extends AppCompatActivity {
         TextView tv = (TextView) findViewById(R.id.lamba_text);
         Typeface tf = Typeface.createFromAsset(getAssets(), "fonts/DSEG7Modern-Regular.ttf");
         tv.setTypeface(tf);
+
+        mAFRView = tv;
     }
 
     void showStatus(TextView theTextView, String theLabel, boolean theValue){
