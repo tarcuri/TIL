@@ -98,8 +98,8 @@ public class ISPService extends Service {
                     Log.d(TAG, "read " + br + " bytes: " + HexDump.dumpHexString(chunk) + "\n");
 
                     // chunk access for debug
-                    mChunkQueue.add(chunk);
-                    sendBroadcast(new Intent(ISPService.ISP_DATA_RECEIVED));
+                    //mChunkQueue.add(chunk);
+                    //sendBroadcast(new Intent(ISPService.ISP_DATA_RECEIVED));
 
                     // now process the bytebuffer
                     mByteBuffer.put(chunk);

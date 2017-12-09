@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <EditTextPreference
+        android:key="pref_multiplier"
+        android:title="Lambda Multiplier"
+        android:summary="AFR = (LAMBDA + OFFSET) * MULTIPLIER / 10000"
+        android:defaultValue="147"
+        />
+</PreferenceScreen>

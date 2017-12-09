@@ -96,4 +96,14 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/settings_button"
+        android:layout_width="225dp"
+        android:layout_height="50dp"
+        android:layout_marginTop="8dp"
+        android:onClick="showSettings"
+        android:text="Settings"
+        app:layout_constraintEnd_toEndOf="@+id/view_log_button"
+        app:layout_constraintTop_toBottomOf="@+id/view_log_button" />
 </android.support.constraint.ConstraintLayout>

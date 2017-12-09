@@ -44,6 +44,7 @@ public class TILActivity extends AppCompatActivity {
     private static boolean mUsbPermission = false;
 
     private static UsbSerialPort sPort = null;
+    private static int mLambdaMultiplier = 147;
 
     private UsbManager mUsbManager;
     private ListView mListView;
@@ -204,5 +205,11 @@ public class TILActivity extends AppCompatActivity {
         } else {
             Toast.makeText(this, "No device selected", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    public void showSettings(View view) {
+        Log.d(TAG, "showing settings");
+        Intent intent = new Intent(this, Settings.class);
+        startActivity(intent);
     }
 }
