@@ -1,5 +1,6 @@
 package com.tarcuri.til;
 
+import android.app.Notification;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -79,6 +80,8 @@ public class ISPService extends Service {
     private static UsbSerialPort sPort = null;
 
     private long mLogStartTime;
+
+    private static Context mContext;
 
     private File mLogFile = null;
     private FileOutputStream mLogOut = null;
@@ -274,6 +277,14 @@ public class ISPService extends Service {
             Log.e(TAG, "ERROR: couldn't create log file");
             ioe.printStackTrace();
         }
+
+        Notification noti = new Notification.Builder(mContext)
+                .setContentTitle("TIL: Logging LC-1")
+                .setContentText("started: " + mLogFile.getName())
+                .setSmallIcon(R.drawable.ic_launcher_background)
+                .build();
+
+        startForeground(1, noti);
     }
 
     private void stopLogging() {
@@ -285,6 +296,8 @@ public class ISPService extends Service {
                 e.printStackTrace();
             }
         }
+
+        stopForeground(true);
     }
 
     static void startISPService(Context context,
@@ -293,5 +306,7 @@ public class ISPService extends Service {
         sPort = port;
         Intent isp_intent = new Intent(context, ISPService.class);
         context.bindService(isp_intent, conn, context.BIND_AUTO_CREATE);
+
+        mContext = context;
     }
 }
