@@ -185,10 +185,12 @@ public class Dashboard extends AppCompatActivity {
     }
 
     public void startLog() {
+        mLogView.append("TIL_START_LOGGING\n");
         sendBroadcast(new Intent(Dashboard.TIL_START_LOGGING));
     }
 
     public void stopLog() {
+        mLogView.append("TIL_STOP_LOGGING\n");
         sendBroadcast(new Intent(Dashboard.TIL_STOP_LOGGING));
     }
 
