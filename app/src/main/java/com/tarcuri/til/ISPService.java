@@ -1,21 +1,27 @@
 package com.tarcuri.til;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Binder;
+import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
 
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.util.HexDump;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -27,6 +33,8 @@ import java.util.concurrent.Executors;
 
 public class ISPService extends Service {
     private final String TAG = ISPService.class.getSimpleName();
+
+
 
     // Binder given to clients
     private final IBinder mBinder = new LocalBinder();
@@ -67,6 +75,26 @@ public class ISPService extends Service {
     private static short ISP_LOW_LENGTH_MASK = 0x7f;
 
     private static UsbSerialPort sPort = null;
+
+    private class TILUpdateReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(Dashboard.TIL_START_LOGGING)) {
+
+            } else if (intent.getAction().equals(Dashboard.TIL_STOP_LOGGING)) {
+
+            }
+        }
+    }
+
+    private TILUpdateReceiver mTILUpdateReceiver = new TILUpdateReceiver();
+
+    private void setFilter() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Dashboard.TIL_START_LOGGING);
+        filter.addAction(Dashboard.TIL_STOP_LOGGING);
+        registerReceiver(mTILUpdateReceiver, filter);
+    }
 
     private class ReadISP extends AsyncTask<UsbSerialPort, Long, Long> {
         private ByteBuffer mByteBuffer = ByteBuffer.allocate(1024);
@@ -143,6 +171,8 @@ public class ISPService extends Service {
                                     Log.d(TAG, "found LC1 packet");
                                     mPacketQueue.add(new LC1Packet(packet));
                                     sendBroadcast(new Intent(ISPService.ISP_LC1_RECEIVED));
+
+                                    // log to file
                                 }
 
                                 packet = null;
@@ -202,6 +232,21 @@ public class ISPService extends Service {
     @Override
     public void onDestroy() {
 
+    }
+
+    private File createLogFile() {
+        SimpleDateFormat timeStamp = new SimpleDateFormat("YYYYMMDDTHHmmss");
+        String filename = "lc1_" + timeStamp.format(new Date()) + ".log";
+        File file = new File(Environment.getExternalStoragePublicDirectory(
+                "LC1_logs"), filename);
+        if (!file.mkdirs()) {
+            Log.e(TAG, "Couldn't create LC1 log directory");
+        }
+        return file;
+    }
+
+    private void startLogging() {
+        File f = createLogFile();
     }
 
     static void startISPService(Context context,

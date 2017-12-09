@@ -31,6 +31,9 @@ import java.util.concurrent.Executors;
 public class Dashboard extends AppCompatActivity {
     private final String TAG = Dashboard.class.getSimpleName();
 
+    public static final String TIL_START_LOGGING = "com.arcuri.til.TIL_START_LOGGING";
+    public static final String TIL_STOP_LOGGING = "com.arcuri.til.TIL_STOP_LOGGING";
+
     private TextView mLogView;
     private ScrollView mScrollView;
 
@@ -182,12 +185,11 @@ public class Dashboard extends AppCompatActivity {
     }
 
     public void startLog() {
-//        Toast.makeText(this, "startLog", Toast.LENGTH_SHORT).show();
-        // TODO: launch ISP logger service
+        sendBroadcast(new Intent(Dashboard.TIL_START_LOGGING));
     }
 
     public void stopLog() {
-//        Toast.makeText(this, "stopLog()", Toast.LENGTH_SHORT).show();
+        sendBroadcast(new Intent(Dashboard.TIL_STOP_LOGGING));
     }
 
     private void updateReceivedData(byte[] data) {
