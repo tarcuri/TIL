@@ -16,6 +16,7 @@ import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.util.HexDump;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -23,6 +24,7 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
+import java.util.Locale;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -76,13 +78,18 @@ public class ISPService extends Service {
 
     private static UsbSerialPort sPort = null;
 
+    private long mLogStartTime;
+
+    private File mLogFile = null;
+    private FileOutputStream mLogOut = null;
+
     private class TILUpdateReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(Dashboard.TIL_START_LOGGING)) {
-
+                startLogging();
             } else if (intent.getAction().equals(Dashboard.TIL_STOP_LOGGING)) {
-
+                stopLogging();
             }
         }
     }
@@ -169,10 +176,16 @@ public class ISPService extends Service {
                                 Log.d(TAG, "found full packet (" + packet_words + " words)");
                                 if (packet_words == ISP_LC1_PACKET_LENGTH) {
                                     Log.d(TAG, "found LC1 packet");
-                                    mPacketQueue.add(new LC1Packet(packet));
-                                    sendBroadcast(new Intent(ISPService.ISP_LC1_RECEIVED));
+                                    LC1Packet lc1 = new LC1Packet(packet);
 
                                     // log to file
+                                    if (mLogOut != null) {
+                                        logPacket(mLogOut, lc1);
+                                    }
+
+                                    // queue for dashboard display
+                                    mPacketQueue.add(lc1);
+                                    sendBroadcast(new Intent(ISPService.ISP_LC1_RECEIVED));
                                 }
 
                                 packet = null;
@@ -206,20 +219,14 @@ public class ISPService extends Service {
     @Override
     public void onCreate() {
         Log.i(TAG, "onCreate");
-        // The service is being created
+        setFilter();
         sendBroadcast(new Intent(ISPService.ISP_SERVICE_CONNECTED));
         new ReadISP().execute(sPort);
-//        Toast.makeText(this, "onCreate", Toast.LENGTH_SHORT).show();
-//        isConnected = true;
-//
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "onStartCommand");
-        // The service is starting, due to a call to startService()
-//        Toast.makeText(this, "onStartCommand", Toast.LENGTH_SHORT).show();
-
         return START_STICKY;
     }
 
@@ -231,12 +238,11 @@ public class ISPService extends Service {
 
     @Override
     public void onDestroy() {
-
     }
 
     private File createLogFile() {
-        SimpleDateFormat timeStamp = new SimpleDateFormat("YYYYMMDDTHHmmss");
-        String filename = "lc1_" + timeStamp.format(new Date()) + ".log";
+        SimpleDateFormat timeStamp = new SimpleDateFormat("YYYYMMDD-HHmmss", Locale.US);
+        String filename = "til_lc1_log_" + timeStamp.format(new Date()) + ".csv";
         File file = new File(Environment.getExternalStoragePublicDirectory(
                 "LC1_logs"), filename);
         if (!file.mkdirs()) {
@@ -245,8 +251,40 @@ public class ISPService extends Service {
         return file;
     }
 
+    private void logPacket(FileOutputStream out, LC1Packet p) {
+        float elapsed = (float) (System.nanoTime() - mLogStartTime) / (float) 1000000;
+        // elasped,afr,lamda,multiplier
+        String line = String.format(Locale.US,"%.3f,%f,%d,%d\n",
+                elapsed, p.getAFR(), p.getLambdaWord(), p.getMultiplier());
+        Log.d("LOGGING: ", line);
+
+        try {
+            out.write(line.getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void startLogging() {
-        File f = createLogFile();
+        mLogFile = createLogFile();
+        mLogStartTime = System.nanoTime();
+        try {
+            mLogOut = new FileOutputStream(mLogFile);
+        } catch (IOException ioe) {
+            Log.e(TAG, "ERROR: couldn't create log file");
+            ioe.printStackTrace();
+        }
+    }
+
+    private void stopLogging() {
+        if (mLogOut != null) {
+            try {
+                mLogOut.close();
+                mLogOut = null;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     static void startISPService(Context context,
