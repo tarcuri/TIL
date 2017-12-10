@@ -147,17 +147,6 @@ public class TILActivity extends AppCompatActivity {
         connect_button.getBackground().setColorFilter(Color.GRAY, PorterDuff.Mode.MULTIPLY);
 
         refreshDeviceList(null);
-
-        if (isExternalStorageWritable()) {
-            File f = new File(getExternalFilesDir(null).getPath() + "/LC1");
-            if (!f.exists()) {
-                if (!f.mkdirs()) {
-                    Log.e(TAG, "couldn't create log directory: " + f.getAbsolutePath());
-                }
-            } else {
-                Log.d(TAG, f.getAbsolutePath() + " exists.");
-            }
-        }
     }
 
     @Override
