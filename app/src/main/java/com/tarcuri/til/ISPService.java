@@ -246,11 +246,11 @@ public class ISPService extends Service {
     private File createLogFile() {
         SimpleDateFormat timeStamp = new SimpleDateFormat("YYYYMMDD-HHmmss", Locale.US);
         String filename = "til_lc1_log_" + timeStamp.format(new Date()) + ".csv";
-        File file = new File(Environment.getExternalStoragePublicDirectory(
-                "LC1_logs"), filename);
-        if (!file.mkdirs()) {
-            Log.e(TAG, "Couldn't create LC1 log directory");
+        File logPath = new File(getExternalFilesDir(null).getPath() + "/logs/");
+        if (!logPath.mkdirs()) {
+            Log.e(TAG, "Couldn't create LC1 log directory: " + logPath);
         }
+        File file = new File(logPath + filename);
         return file;
     }
 
