@@ -34,7 +34,7 @@ public class ViewLog extends AppCompatActivity {
             tableLayout.setStretchAllColumns(true);
 
 
-            int i = 0;
+            int i = 1;
             for (String line; (line = br.readLine()) != null; i++) {
                 TableRow row = new TableRow(this);
                 TableRow.LayoutParams lp = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT);
