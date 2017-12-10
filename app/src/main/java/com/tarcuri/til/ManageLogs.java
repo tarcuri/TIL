@@ -48,7 +48,10 @@ public class ManageLogs extends AppCompatActivity {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
             String fileName = (String) parent.getItemAtPosition(position);
-//            startActivity(new Intent(view.getContext(), ViewLog.class));
+
+            Intent intent = new Intent(view.getContext(), ViewLog.class);
+            intent.putExtra("logfile", fileName);
+            startActivity(intent);
             Toast.makeText(view.getContext(), "selected: " + fileName, Toast.LENGTH_SHORT).show();
         }
     };
