@@ -80,6 +80,7 @@ public class ISPService extends Service {
     private static UsbSerialPort sPort = null;
 
     private long mLogStartTime;
+    private long mStartTime;
 
     private static Context mContext;
 
@@ -181,14 +182,19 @@ public class ISPService extends Service {
                                     Log.d(TAG, "found LC1 packet");
                                     LC1Packet lc1 = new LC1Packet(packet);
 
+                                    // queue for dashboard display
+                                    mPacketQueue.add(lc1);
+
                                     // log to file
                                     if (mLogOut != null) {
                                         logPacket(mLogOut, lc1);
                                     }
 
-                                    // queue for dashboard display
-                                    mPacketQueue.add(lc1);
-                                    sendBroadcast(new Intent(ISPService.ISP_LC1_RECEIVED));
+                                    Intent intent = new Intent(ISPService.ISP_LC1_RECEIVED);
+                                    // elapsed time since service started (diff. from elasped log time)
+                                    float elapsed = (float) (System.nanoTime() - mStartTime) / (float) 1000000;
+                                    intent.putExtra("time", String.format("%f", elapsed));
+                                    sendBroadcast(intent);
                                 }
 
                                 packet = null;
@@ -224,6 +230,8 @@ public class ISPService extends Service {
         Log.i(TAG, "onCreate");
         setFilter();
         sendBroadcast(new Intent(ISPService.ISP_SERVICE_CONNECTED));
+
+        mStartTime = System.nanoTime();
         new ReadISP().execute(sPort);
     }
 
