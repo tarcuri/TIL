@@ -7,6 +7,10 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -33,6 +37,8 @@ public class ViewLog extends AppCompatActivity {
             TableLayout.LayoutParams tlp = new TableLayout.LayoutParams();
             tableLayout.setStretchAllColumns(true);
 
+            GraphView graph = (GraphView) findViewById(R.id.graph);
+            LineGraphSeries<DataPoint> series = new LineGraphSeries<>();
 
             int i = 1;
             for (String line; (line = br.readLine()) != null; i++) {
@@ -46,8 +52,13 @@ public class ViewLog extends AppCompatActivity {
                     row.addView(t);
                 }
 
+                series.appendData(new DataPoint(Float.parseFloat(fields[0]), Float.parseFloat(fields[1])),
+                        true, 10000);
+
                 tableLayout.addView(row, i);
             }
+
+            graph.addSeries(series);
 
 
         } catch (FileNotFoundException fnf) {
