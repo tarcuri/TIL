@@ -30,6 +30,10 @@ public class ViewLog extends AppCompatActivity {
         try {
             BufferedReader br = new BufferedReader(new FileReader(file.getPath()));
 
+            TableLayout.LayoutParams tlp = new TableLayout.LayoutParams();
+            tableLayout.setStretchAllColumns(true);
+
+
             int i = 0;
             for (String line; (line = br.readLine()) != null; i++) {
                 TableRow row = new TableRow(this);
