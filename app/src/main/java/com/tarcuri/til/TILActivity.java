@@ -237,6 +237,10 @@ public class TILActivity extends AppCompatActivity {
         }
     }
 
+    public void startLogManager(View view) {
+        startActivity(new Intent(this, ManageLogs.class));
+    }
+
     public void showSettings(View view) {
         Log.d(TAG, "showing settings");
         Intent intent = new Intent(this, Settings.class);
