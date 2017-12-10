@@ -40,6 +40,18 @@ public class ViewLog extends AppCompatActivity {
             GraphView graph = (GraphView) findViewById(R.id.graph);
             LineGraphSeries<DataPoint> series = new LineGraphSeries<>();
 
+            // activate horizontal zooming and scrolling
+            graph.getViewport().setScalable(true);
+
+// activate horizontal scrolling
+            graph.getViewport().setScrollable(true);
+
+// activate horizontal and vertical zooming and scrolling
+            graph.getViewport().setScalableY(true);
+
+// activate vertical scrolling
+            graph.getViewport().setScrollableY(true);
+
             int i = 1;
             for (String line; (line = br.readLine()) != null; i++) {
                 TableRow row = new TableRow(this);
@@ -60,6 +72,13 @@ public class ViewLog extends AppCompatActivity {
 
             graph.addSeries(series);
 
+            graph.getViewport().setXAxisBoundsManual(true);
+            graph.getViewport().setMinX(0.0);
+            graph.getViewport().setMaxX(series.getHighestValueX());
+
+            graph.getViewport().setYAxisBoundsManual(true);
+            graph.getViewport().setMinY(7);
+            graph.getViewport().setMaxY(series.getHighestValueY());
 
         } catch (FileNotFoundException fnf) {
             fnf.printStackTrace();
