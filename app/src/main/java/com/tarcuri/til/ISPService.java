@@ -253,12 +253,8 @@ public class ISPService extends Service {
 
     private File createLogFile() {
         SimpleDateFormat timeStamp = new SimpleDateFormat("YYYYMMDD-HHmmss", Locale.US);
-        String filename = "til_lc1_log_" + timeStamp.format(new Date()) + ".csv";
-        File logPath = new File(getExternalFilesDir(null).getPath() + "/logs/");
-        if (!logPath.mkdirs()) {
-            Log.e(TAG, "Couldn't create LC1 log directory: " + logPath);
-        }
-        File file = new File(logPath + filename);
+        String filename = "lc1_" + timeStamp.format(new Date()) + ".csv";
+        File file = new File(getExternalFilesDir(null), filename);
         return file;
     }
 
