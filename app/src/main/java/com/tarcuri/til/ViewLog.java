@@ -1,8 +1,10 @@
 package com.tarcuri.til;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -19,6 +21,7 @@ import java.io.FileReader;
 import java.io.IOException;
 
 public class ViewLog extends AppCompatActivity {
+    private String mFileName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,6 +32,7 @@ public class ViewLog extends AppCompatActivity {
 
         Intent intent = getIntent();
         String filename = intent.getStringExtra("logfile");
+        mFileName = filename;
 
         File file = new File(getExternalFilesDir(null), filename);
         try {
@@ -43,13 +47,13 @@ public class ViewLog extends AppCompatActivity {
             // activate horizontal zooming and scrolling
             graph.getViewport().setScalable(true);
 
-// activate horizontal scrolling
+            // activate horizontal scrolling
             graph.getViewport().setScrollable(true);
 
-// activate horizontal and vertical zooming and scrolling
+            // activate horizontal and vertical zooming and scrolling
             graph.getViewport().setScalableY(true);
 
-// activate vertical scrolling
+            // activate vertical scrolling
             graph.getViewport().setScrollableY(true);
 
             int i = 1;
@@ -72,6 +76,7 @@ public class ViewLog extends AppCompatActivity {
 
             graph.addSeries(series);
 
+            // manually set viewport
             graph.getViewport().setXAxisBoundsManual(true);
             graph.getViewport().setMinX(0.0);
             graph.getViewport().setMaxX(series.getHighestValueX());
@@ -85,8 +90,18 @@ public class ViewLog extends AppCompatActivity {
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }
+    }
 
+    public void shareLog(View view) {
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        File f = new File(getExternalFilesDir(null), mFileName);
 
-
+        if (f.exists()) {
+            intent.setType("text/csv");
+            intent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://" + f.getPath()));
+            intent.putExtra(Intent.EXTRA_SUBJECT, "TIL LC-1 Logger Log File");
+            intent.putExtra(Intent.EXTRA_TEXT, "TIL LC-1 Logger Log File attached. Format: time, afr, lambda, multiplier");
+            startActivity(Intent.createChooser(intent, "Share Log"));
+        }
     }
 }
