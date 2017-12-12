@@ -82,8 +82,8 @@ public class ViewLog extends AppCompatActivity {
             graph.getViewport().setMaxX(series.getHighestValueX());
 
             graph.getViewport().setYAxisBoundsManual(true);
-            graph.getViewport().setMinY(7);
-            graph.getViewport().setMaxY(series.getHighestValueY());
+            graph.getViewport().setMinY(5);
+            graph.getViewport().setMaxY(27);
 
         } catch (FileNotFoundException fnf) {
             fnf.printStackTrace();
