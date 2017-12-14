@@ -67,8 +67,8 @@ public class ManageLogs extends AppCompatActivity {
                 row.getText1().setTypeface(null, Typeface.BOLD);
 
                 final String subtitle = String.format(Locale.US,
-                        "length: %d bytes, last modified: %s",
-                        length, modified.toString());
+                        "%s\n%d bytes",
+                        modified.toString(), length);
 
                 row.getText2().setText(subtitle);
 
