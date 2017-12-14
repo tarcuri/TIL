@@ -14,6 +14,7 @@ import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -208,6 +209,17 @@ public class Dashboard extends AppCompatActivity {
                 mLogView.setText("received unhandled exception\n");
             }
             mLogView.setText("Serial device: " + sPort.getClass().getSimpleName() + "\n");
+        }
+    }
+
+    public void onGaugeButtonClick(View view) {
+        ToggleButton log_toggle = (ToggleButton) findViewById(R.id.log_button);
+        if (log_toggle.isChecked()) {
+            stopLog();
+            log_toggle.setChecked(false);
+        } else {
+            startLog();
+            log_toggle.setChecked(true);
         }
     }
 

@@ -19,18 +19,22 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <ImageView
-        android:id="@+id/imageView"
-        android:layout_width="313dp"
-        android:layout_height="240dp"
+    <ImageButton
+        android:id="@+id/gauge_button"
+        android:layout_width="238dp"
+        android:layout_height="247dp"
         android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
+        android:adjustViewBounds="false"
+        android:background="@drawable/innovate_guage_face"
+        android:cropToPadding="false"
+        android:elevation="0dp"
+        android:onClick="onGaugeButtonClick"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.509"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/log_button"
-        app:srcCompat="@drawable/innovate_guage_face" />
+        app:layout_constraintTop_toBottomOf="@+id/log_button" />
 
     <TextView
         android:id="@+id/lamba_text"
@@ -41,17 +45,17 @@
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
         android:ems="10"
+        android:gravity="end"
         android:inputType="none"
         android:text="14.7"
-        android:textAlignment="viewEnd"
-        android:gravity="end"
+        android:textAlignment="center"
         android:textColor="@android:color/holo_red_dark"
         android:textSize="36sp"
         android:typeface="monospace"
-        app:layout_constraintBottom_toBottomOf="@+id/imageView"
-        app:layout_constraintEnd_toEndOf="@+id/imageView"
-        app:layout_constraintStart_toStartOf="@+id/imageView"
-        app:layout_constraintTop_toTopOf="@+id/imageView" />
+        app:layout_constraintBottom_toBottomOf="@+id/gauge_button"
+        app:layout_constraintEnd_toEndOf="@+id/gauge_button"
+        app:layout_constraintStart_toStartOf="@+id/gauge_button"
+        app:layout_constraintTop_toTopOf="@+id/gauge_button" />
 
     <com.jjoe64.graphview.GraphView
         android:id="@+id/graph"
