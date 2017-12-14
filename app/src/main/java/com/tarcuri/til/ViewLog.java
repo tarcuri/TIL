@@ -56,7 +56,7 @@ public class ViewLog extends AppCompatActivity {
             // activate vertical scrolling
             graph.getViewport().setScrollableY(true);
 
-            int i = 1;
+            int i = 0;
             for (String line; (line = br.readLine()) != null; i++) {
                 TableRow row = new TableRow(this);
                 TableRow.LayoutParams lp = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT);
