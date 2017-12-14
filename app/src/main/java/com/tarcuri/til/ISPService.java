@@ -7,6 +7,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.Icon;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.IBinder;
@@ -286,10 +289,16 @@ public class ISPService extends Service {
             ioe.printStackTrace();
         }
 
+        Bitmap largeIcon = BitmapFactory.decodeResource(
+                this.getResources(),
+                R.mipmap.ic_launcher
+        );
+
         Notification noti = new Notification.Builder(mContext)
                 .setContentTitle("TIL: Logging LC-1")
-                .setContentText("started: " + mLogFile.getName())
-                .setSmallIcon(R.drawable.ic_launcher_background)
+                .setContentText(mLogFile.getName())
+                .setSmallIcon(R.drawable.ic_lamba)
+                .setLargeIcon(largeIcon)
                 .build();
 
         startForeground(1, noti);
