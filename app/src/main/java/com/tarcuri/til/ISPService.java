@@ -259,7 +259,7 @@ public class ISPService extends Service {
     }
 
     private File createLogFile() {
-        SimpleDateFormat timeStamp = new SimpleDateFormat("YYYYMMDD-HHmmss", Locale.US);
+        SimpleDateFormat timeStamp = new SimpleDateFormat("YYYY-MM-dd-HHmmss", Locale.US);
         String filename = "lc1_" + timeStamp.format(new Date()) + ".csv";
         File file = new File(getExternalFilesDir(null), filename);
         return file;
