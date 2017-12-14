@@ -14,6 +14,7 @@ import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -23,6 +24,9 @@ import android.widget.ToggleButton;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.util.HexDump;
 import com.hoho.android.usbserial.util.SerialInputOutputManager;
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -31,8 +35,10 @@ import java.util.concurrent.Executors;
 public class Dashboard extends AppCompatActivity {
     private final String TAG = Dashboard.class.getSimpleName();
 
+    public static final String TIL_START_LOGGING = "com.arcuri.til.TIL_START_LOGGING";
+    public static final String TIL_STOP_LOGGING = "com.arcuri.til.TIL_STOP_LOGGING";
+
     private TextView mLogView;
-    private ScrollView mScrollView;
 
     private static UsbSerialPort sPort = null;
 
@@ -60,7 +66,7 @@ public class Dashboard extends AppCompatActivity {
                     String afr_str = String.valueOf(afr);
 
                     // show some debug
-                    mLogView.append("ISP_LC1_RECEIVED: AFR = (" + L + " + 500) * "
+                    mLogView.setText("ISP_LC1_RECEIVED: AFR = (" + L + " + 500) * "
                             + m + " / 10000 = " + afr_str + "\n");
                     Log.i(TAG, "ISP_LC1_RECEIVED: AFR = (" + L + " + 500) * "
                             + m + " / 10000 = " + afr_str);
@@ -68,6 +74,11 @@ public class Dashboard extends AppCompatActivity {
 
                     // update the gauge display
                     mAFRView.setText(String.format("%.2f", afr));
+
+                    // update the graph
+                    String elapsed = intent.getStringExtra("time");
+                    DataPoint lc1_data = new DataPoint(Float.parseFloat(elapsed), afr);
+                    mSeries.appendData(lc1_data, true, 10000);
                 } else {
                     Log.d(TAG, "ISP_LC1_RECEIVED: null packet!\n");
                 }
@@ -76,6 +87,9 @@ public class Dashboard extends AppCompatActivity {
     }
 
     private IspUpdateReceiver mIspUpdateReceiver = new IspUpdateReceiver();
+
+    private LineGraphSeries<DataPoint> mSeries;
+    private GraphView mGraph;
 
     private void setFilter() {
         IntentFilter filter = new IntentFilter();
@@ -92,8 +106,7 @@ public class Dashboard extends AppCompatActivity {
 
         setFilter();
 
-        mLogView = (TextView) findViewById(R.id.isplog_textview);
-        mScrollView = (ScrollView) findViewById(R.id.log_view);
+        mLogView = (TextView) findViewById(R.id.status_textview);
 
         // start/stop logging
         ToggleButton log_toggle = (ToggleButton) findViewById(R.id.log_button);
@@ -112,6 +125,33 @@ public class Dashboard extends AppCompatActivity {
         tv.setTypeface(tf);
 
         mAFRView = tv;
+
+        mGraph = (GraphView) findViewById(R.id.graph);
+        mSeries = new LineGraphSeries<>();
+
+        // activate horizontal zooming and scrolling
+        mGraph.getViewport().setScalable(true);
+
+        // activate horizontal scrolling
+        mGraph.getViewport().setScrollable(true);
+
+        // activate horizontal and vertical zooming and scrolling
+        mGraph.getViewport().setScalableY(true);
+
+        // activate vertical scrolling
+        mGraph.getViewport().setScrollableY(true);
+
+        // add empty series
+        mGraph.addSeries(mSeries);
+
+        // manually set viewport
+        mGraph.getViewport().setXAxisBoundsManual(true);
+        mGraph.getViewport().setMinX(0.0);
+        mGraph.getViewport().setMaxX(10000);
+
+        mGraph.getViewport().setYAxisBoundsManual(true);
+        mGraph.getViewport().setMinY(5);
+        mGraph.getViewport().setMaxY(25);
     }
 
     void showStatus(TextView theTextView, String theLabel, boolean theValue){
@@ -122,14 +162,14 @@ public class Dashboard extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (sPort != null) {
-            try {
-                sPort.close();
-            } catch (IOException e) {
-                // Ignore.
-            }
-            sPort = null;
+        if (mIspUpdateReceiver != null) {
+            unregisterReceiver(mIspUpdateReceiver);
         }
+
+        // stop ISP service
+        Intent intent = new Intent(this, ISPService.class);
+        stopService(intent);
+
         finish();
     }
 
@@ -138,34 +178,26 @@ public class Dashboard extends AppCompatActivity {
         super.onResume();
         Log.d(TAG, "Resumed, port=" + sPort);
         if (sPort == null) {
-            mLogView.append("No serial device\n");
+            mLogView.setText("No serial device\n");
         } else {
             final UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
             UsbDeviceConnection connection = usbManager.openDevice(sPort.getDriver().getDevice());
             if (connection == null) {
-                mLogView.append("Opening device failed\n");
+                mLogView.setText("Opening device failed\n");
                 return;
             }
 
             try {
-                mLogView.append("opening connection\n");
+                mLogView.setText("opening connection\n");
                 sPort.open(connection);
-                mLogView.append("setting parameters\n");
+                mLogView.setText("setting parameters\n");
                 sPort.setParameters(19200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
 
                 ISPService.startISPService(this, sPort, mConnection);
-
-//                showStatus(mLogView, "CD  - Carrier Detect", sPort.getCD());
-//                showStatus(mLogView, "CTS - Clear To Send", sPort.getCTS());
-//                showStatus(mLogView, "DSR - Data Set Ready", sPort.getDSR());
-//                showStatus(mLogView, "DTR - Data Terminal Ready", sPort.getDTR());
-//                showStatus(mLogView, "DSR - Data Set Ready", sPort.getDSR());
-//                showStatus(mLogView, "RI  - Ring Indicator", sPort.getRI());
-//                showStatus(mLogView, "RTS - Request To Send", sPort.getRTS());
             } catch (IOException e) {
                 Log.e(TAG, "Error setting up device: " + e.getMessage(), e);
-                mLogView.append("Error opening device: " + e.getMessage() + "\n");
+                mLogView.setText("Error opening device: " + e.getMessage() + "\n");
                 try {
                     sPort.close();
                 } catch (IOException e2) {
@@ -174,27 +206,37 @@ public class Dashboard extends AppCompatActivity {
                 sPort = null;
                 return;
             } catch (Exception e) {
-                mLogView.append("received unhandled exception\n");
+                mLogView.setText("received unhandled exception\n");
             }
-            mLogView.append("Serial device: " + sPort.getClass().getSimpleName() + "\n");
+            mLogView.setText("Serial device: " + sPort.getClass().getSimpleName() + "\n");
         }
-//        onDeviceStateChange();
+    }
+
+    public void onGaugeButtonClick(View view) {
+        ToggleButton log_toggle = (ToggleButton) findViewById(R.id.log_button);
+        if (log_toggle.isChecked()) {
+            stopLog();
+            log_toggle.setChecked(false);
+        } else {
+            startLog();
+            log_toggle.setChecked(true);
+        }
     }
 
     public void startLog() {
-//        Toast.makeText(this, "startLog", Toast.LENGTH_SHORT).show();
-        // TODO: launch ISP logger service
+        mLogView.setText("TIL_START_LOGGING\n");
+        sendBroadcast(new Intent(Dashboard.TIL_START_LOGGING));
     }
 
     public void stopLog() {
-//        Toast.makeText(this, "stopLog()", Toast.LENGTH_SHORT).show();
+        mLogView.setText("TIL_STOP_LOGGING\n");
+        sendBroadcast(new Intent(Dashboard.TIL_STOP_LOGGING));
     }
 
     private void updateReceivedData(byte[] data) {
         final String message = "Read " + data.length + " bytes: \n"
                 + HexDump.dumpHexString(data) + "\n\n";
-        mLogView.append(message);
-        mScrollView.smoothScrollTo(0, mLogView.getBottom());
+        mLogView.setText(message);
     }
 
     private ServiceConnection mConnection = new ServiceConnection() {

@@ -2,4 +2,5 @@
     <string name="app_name">TIL</string>
     <string name="afr_font">fonts/DSEG7Modern-Bold.ttf</string>
     <string name="refreshing">Refreshing device list...</string>
+    <string name="lambda_multiplier_desc">Should be 10x stoichiometric ratio.\nDefault: 147 for gasoline</string>
 </resources>

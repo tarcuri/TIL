@@ -26,6 +26,13 @@ public class LC1Packet {
         word1 = packet[2];
     }
 
+    public LC1Packet(short[] packet, byte multiplier) {
+        this.packet = packet;
+        header = packet[0];
+        word0 = packet[1];
+        word1 = packet[2];
+    }
+
     public byte[] getPacketBytes() {
         byte[] buf = new byte[6];
         ByteBuffer.wrap(buf).order(ByteOrder.BIG_ENDIAN).asShortBuffer().put(packet);
@@ -61,7 +68,15 @@ public class LC1Packet {
         short L = getLambdaWord();
         byte multi = getMultiplier();
 
-        float afr = (float) ((L + 500) * multi) / (float) 10000.0;
+        float afr = (float) ((L + 500) * 147) / (float) 10000.0;
+
+        if (afr > 22.39) {
+            afr = (float) 22.39;
+        }
+
+        if (afr < 7.35) {
+            afr = (float) 7.35;
+        }
 
         return afr;
     }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <EditTextPreference
+        android:key="pref_multiplier"
+        android:title="Lambda Multiplier"
+        android:summary="@string/lambda_multiplier_desc"
+        android:defaultValue="147"
+        />
+    <EditTextPreference
+        android:key="pref_format"
+        android:title="Log Format"
+        android:summary="T=time, A=afr, L=lamda, M=multiplier"
+        android:defaultValue="T,A,L,M"
+        />
+</PreferenceScreen>

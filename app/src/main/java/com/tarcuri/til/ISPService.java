@@ -1,9 +1,15 @@
 package com.tarcuri.til;
 
+import android.app.Notification;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.Icon;
 import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.IBinder;
@@ -12,14 +18,16 @@ import android.util.Log;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.util.HexDump;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedList;
+import java.util.Locale;
 import java.util.Queue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created by tarcuri on 10/20/17.
@@ -27,6 +35,8 @@ import java.util.concurrent.Executors;
 
 public class ISPService extends Service {
     private final String TAG = ISPService.class.getSimpleName();
+
+
 
     // Binder given to clients
     private final IBinder mBinder = new LocalBinder();
@@ -68,7 +78,37 @@ public class ISPService extends Service {
 
     private static UsbSerialPort sPort = null;
 
-    private class ReadISP extends AsyncTask<UsbSerialPort, Long, Long> {
+    private long mLogStartTime;
+    private long mStartTime;
+
+    private static Context mContext;
+
+    private File mLogFile = null;
+    private FileOutputStream mLogOut = null;
+
+    private AsyncTask<UsbSerialPort, Long, Long> mIspParser = null;
+
+    private class TILUpdateReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(Dashboard.TIL_START_LOGGING)) {
+                startLogging();
+            } else if (intent.getAction().equals(Dashboard.TIL_STOP_LOGGING)) {
+                stopLogging();
+            }
+        }
+    }
+
+    private TILUpdateReceiver mTILUpdateReceiver = new TILUpdateReceiver();
+
+    private void setFilter() {
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Dashboard.TIL_START_LOGGING);
+        filter.addAction(Dashboard.TIL_STOP_LOGGING);
+        registerReceiver(mTILUpdateReceiver, filter);
+    }
+
+    private class ISPParser extends AsyncTask<UsbSerialPort, Long, Long> {
         private ByteBuffer mByteBuffer = ByteBuffer.allocate(1024);
 
         protected Long doInBackground(UsbSerialPort... ports) {
@@ -84,7 +124,7 @@ public class ISPService extends Service {
                 mByteBuffer.clear();
 
                 // TODO: signal task to stop
-                while (!error) try {
+                while (!isCancelled()) try {
                     Log.d(TAG, "Waiting for read()");
                     int br = port.read(bbuf, 500);
                     bytes_read += br;
@@ -98,8 +138,8 @@ public class ISPService extends Service {
                     Log.d(TAG, "read " + br + " bytes: " + HexDump.dumpHexString(chunk) + "\n");
 
                     // chunk access for debug
-                    mChunkQueue.add(chunk);
-                    sendBroadcast(new Intent(ISPService.ISP_DATA_RECEIVED));
+                    //mChunkQueue.add(chunk);
+                    //sendBroadcast(new Intent(ISPService.ISP_DATA_RECEIVED));
 
                     // now process the bytebuffer
                     mByteBuffer.put(chunk);
@@ -141,8 +181,21 @@ public class ISPService extends Service {
                                 Log.d(TAG, "found full packet (" + packet_words + " words)");
                                 if (packet_words == ISP_LC1_PACKET_LENGTH) {
                                     Log.d(TAG, "found LC1 packet");
-                                    mPacketQueue.add(new LC1Packet(packet));
-                                    sendBroadcast(new Intent(ISPService.ISP_LC1_RECEIVED));
+                                    LC1Packet lc1 = new LC1Packet(packet);
+
+                                    // queue for dashboard display
+                                    mPacketQueue.add(lc1);
+
+                                    // log to file
+                                    if (mLogOut != null) {
+                                        logPacket(mLogOut, lc1);
+                                    }
+
+                                    Intent intent = new Intent(ISPService.ISP_LC1_RECEIVED);
+                                    // elapsed time since service started (diff. from elasped log time)
+                                    float elapsed = (float) (System.nanoTime() - mStartTime) / (float) 1000000;
+                                    intent.putExtra("time", String.format("%f", elapsed));
+                                    sendBroadcast(intent);
                                 }
 
                                 packet = null;
@@ -176,20 +229,17 @@ public class ISPService extends Service {
     @Override
     public void onCreate() {
         Log.i(TAG, "onCreate");
-        // The service is being created
+        setFilter();
         sendBroadcast(new Intent(ISPService.ISP_SERVICE_CONNECTED));
-        new ReadISP().execute(sPort);
-//        Toast.makeText(this, "onCreate", Toast.LENGTH_SHORT).show();
-//        isConnected = true;
-//
+
+        mStartTime = System.nanoTime();
+        mIspParser = new ISPParser();
+        mIspParser.execute(sPort);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "onStartCommand");
-        // The service is starting, due to a call to startService()
-//        Toast.makeText(this, "onStartCommand", Toast.LENGTH_SHORT).show();
-
         return START_STICKY;
     }
 
@@ -201,7 +251,70 @@ public class ISPService extends Service {
 
     @Override
     public void onDestroy() {
+        mIspParser.cancel(true);
+        if (mTILUpdateReceiver != null) {
+            unregisterReceiver(mTILUpdateReceiver);
+        }
+        Log.d(TAG, String.format("onDestroy() - %s", mIspParser.getStatus().toString()));
+    }
 
+    private File createLogFile() {
+        SimpleDateFormat timeStamp = new SimpleDateFormat("YYYYMMDD-HHmmss", Locale.US);
+        String filename = "lc1_" + timeStamp.format(new Date()) + ".csv";
+        File file = new File(getExternalFilesDir(null), filename);
+        return file;
+    }
+
+    private void logPacket(FileOutputStream out, LC1Packet p) {
+        float elapsed = (float) (System.nanoTime() - mLogStartTime) / (float) 1000000;
+        // elasped,afr,lamda,multiplier
+        String line = String.format(Locale.US,"%.3f,%f,%d,%d\n",
+                elapsed, p.getAFR(), p.getLambdaWord(), p.getMultiplier());
+        Log.d("LOGGING: ", line);
+
+        try {
+            out.write(line.getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void startLogging() {
+        mLogFile = createLogFile();
+        mLogStartTime = System.nanoTime();
+        try {
+            mLogOut = new FileOutputStream(mLogFile);
+        } catch (IOException ioe) {
+            Log.e(TAG, "ERROR: couldn't create log file");
+            ioe.printStackTrace();
+        }
+
+        Bitmap largeIcon = BitmapFactory.decodeResource(
+                this.getResources(),
+                R.mipmap.ic_launcher
+        );
+
+        Notification noti = new Notification.Builder(mContext)
+                .setContentTitle("TIL: Logging LC-1")
+                .setContentText(mLogFile.getName())
+                .setSmallIcon(R.drawable.ic_lamba)
+                .setLargeIcon(largeIcon)
+                .build();
+
+        startForeground(1, noti);
+    }
+
+    private void stopLogging() {
+        if (mLogOut != null) {
+            try {
+                mLogOut.close();
+                mLogOut = null;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        stopForeground(true);
     }
 
     static void startISPService(Context context,
@@ -210,5 +323,7 @@ public class ISPService extends Service {
         sPort = port;
         Intent isp_intent = new Intent(context, ISPService.class);
         context.bindService(isp_intent, conn, context.BIND_AUTO_CREATE);
+
+        mContext = context;
     }
 }

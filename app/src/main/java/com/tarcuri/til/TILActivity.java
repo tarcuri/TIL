@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -27,6 +28,7 @@ import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 import com.hoho.android.usbserial.util.HexDump;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -44,6 +46,7 @@ public class TILActivity extends AppCompatActivity {
     private static boolean mUsbPermission = false;
 
     private static UsbSerialPort sPort = null;
+    private static int mLambdaMultiplier = 147;
 
     private UsbManager mUsbManager;
     private ListView mListView;
@@ -187,6 +190,23 @@ public class TILActivity extends AppCompatActivity {
         Log.d(TAG, "Done refreshing, " + mEntries.size() + " entries found.");
     }
 
+    public boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean isExternalStorageReadable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state) ||
+                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
     public void useDevice(UsbSerialPort port) {
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         mPermissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
@@ -204,5 +224,15 @@ public class TILActivity extends AppCompatActivity {
         } else {
             Toast.makeText(this, "No device selected", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    public void startLogManager(View view) {
+        startActivity(new Intent(this, ManageLogs.class));
+    }
+
+    public void showSettings(View view) {
+        Log.d(TAG, "showing settings");
+        Intent intent = new Intent(this, Settings.class);
+        startActivity(intent);
     }
 }
