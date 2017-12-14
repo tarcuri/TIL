@@ -161,14 +161,14 @@ public class Dashboard extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (sPort != null) {
-            try {
-                sPort.close();
-            } catch (IOException e) {
-                // Ignore.
-            }
-            sPort = null;
+        if (mIspUpdateReceiver != null) {
+            unregisterReceiver(mIspUpdateReceiver);
         }
+
+        // stop ISP service
+        Intent intent = new Intent(this, ISPService.class);
+        stopService(intent);
+
         finish();
     }
 
@@ -209,7 +209,6 @@ public class Dashboard extends AppCompatActivity {
             }
             mLogView.setText("Serial device: " + sPort.getClass().getSimpleName() + "\n");
         }
-//        onDeviceStateChange();
     }
 
     public void startLog() {

@@ -9,7 +9,6 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.AsyncTask;
 import android.os.Binder;
-import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -20,15 +19,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.Locale;
 import java.util.Queue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created by tarcuri on 10/20/17.
@@ -87,6 +83,8 @@ public class ISPService extends Service {
     private File mLogFile = null;
     private FileOutputStream mLogOut = null;
 
+    private AsyncTask<UsbSerialPort, Long, Long> mIspParser = null;
+
     private class TILUpdateReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -107,7 +105,7 @@ public class ISPService extends Service {
         registerReceiver(mTILUpdateReceiver, filter);
     }
 
-    private class ReadISP extends AsyncTask<UsbSerialPort, Long, Long> {
+    private class ISPParser extends AsyncTask<UsbSerialPort, Long, Long> {
         private ByteBuffer mByteBuffer = ByteBuffer.allocate(1024);
 
         protected Long doInBackground(UsbSerialPort... ports) {
@@ -123,7 +121,7 @@ public class ISPService extends Service {
                 mByteBuffer.clear();
 
                 // TODO: signal task to stop
-                while (!error) try {
+                while (!isCancelled()) try {
                     Log.d(TAG, "Waiting for read()");
                     int br = port.read(bbuf, 500);
                     bytes_read += br;
@@ -232,7 +230,8 @@ public class ISPService extends Service {
         sendBroadcast(new Intent(ISPService.ISP_SERVICE_CONNECTED));
 
         mStartTime = System.nanoTime();
-        new ReadISP().execute(sPort);
+        mIspParser = new ISPParser();
+        mIspParser.execute(sPort);
     }
 
     @Override
@@ -249,6 +248,11 @@ public class ISPService extends Service {
 
     @Override
     public void onDestroy() {
+        mIspParser.cancel(true);
+        if (mTILUpdateReceiver != null) {
+            unregisterReceiver(mTILUpdateReceiver);
+        }
+        Log.d(TAG, String.format("onDestroy() - %s", mIspParser.getStatus().toString()));
     }
 
     private File createLogFile() {
